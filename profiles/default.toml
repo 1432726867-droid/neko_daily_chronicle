@@ -1,0 +1,4 @@
+[chronicle]
+# 模型端点/密钥已迁到用户运行配置（<数据根>/plugins/neko_daily_chronicle/config/plugin.toml）。
+# 源码里不再保存明文密钥，避免随 .neko-plugin 打包分发；这里也不放 llm_* 键，
+# 以免空值覆盖运行配置里的真实端点。

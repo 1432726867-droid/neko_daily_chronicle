@@ -1,0 +1,127 @@
+# 用户运行配置模板。
+#
+# N.E.K.O 第一次需要本插件的运行配置时，会把这份文件复制到
+# <用户数据根目录>/plugins/neko_daily_chronicle/config/plugin.toml。
+# 之后请改那份配置（或在插件的「配置」页里改），这里的改动不会覆盖已有配置。
+#
+# 只写你想改的项即可，未写的项使用插件内置默认值。
+
+[plugin_runtime]
+enabled = true
+auto_start = true
+
+[chronicle]
+# ── 存档布局 ────────────────────────────────────────────────────────
+raw_dir = "raw"                 # 原始记录（JSONL，只追加）
+chapters_dir = "chapters"       # 小说式章节
+diary_dir = "diary"             # 每章对应的日记
+capsule_dir = "capsules"        # 时间胶囊（一枚一个 JSON，未到期前不可读）
+# 放映厅：每天保存看到第几条、停靠点与手记。只有打开放映页时才读写，关闭后不启动任何后台任务。
+screening_enabled = true
+screening_dir = "screenings"
+screening_page_size = 60        # 放映窗口一次展示多少条
+screening_default_mode = "line" # line = 逐句 | scene = 逐段
+screening_auto_interval = 2.5    # 自动播放每一句的间隔秒数
+screening_auto_pause_on_catgirl = true  # 猫娘开口时自动暂停放映
+screening_review_word_limit = 300       # 观后感字数上限
+screening_review_title_format = "{date} · 放映厅观后感"
+# 拾光 · 对话目录悬浮窗：默认关闭；开启并保存后立即打开，之后也可用 #拾光 打开
+catalog_enabled = false
+catalog_command = "#拾光"
+catalog_send_respond = false            # 默认只送入对话，不打断猫娘
+catalog_search_limit = 40
+catalog_width = 420
+catalog_height = 560
+catalog_ball_size = 64
+catalog_always_on_top = true
+catalog_max_scan_days = 365          # 搜索最多回看多少天；0 = 全部历史
+catalog_idle_close_minutes = 10      # 无操作先缩球，再闲置同样时间后关窗
+catalog_history_limit = 20
+catalog_restore_last_search = true
+# 送入对话时的模板文案：留空 = 不要这一段（引用模板只有结尾，话题模板有开头和结尾）
+catalog_quote_footer = "（这是从拾光对话目录里翻出来的，想和你一起看看。）"
+catalog_topic_lead = "我翻到这一段，想和你聊聊："
+catalog_topic_footer = "（不用马上接话，看到就好。）"
+# 到期提醒：默认每天 capsule_notify_hour 点之后检查一次，只把提醒递给猫娘（不显示在聊天里）
+capsule_notify_enabled = true
+capsule_notify_hour = 9
+
+# ── 章节编排 ────────────────────────────────────────────────────────
+scene_gap_minutes = 30          # 间隔超过该分钟数就另起场景；0 = 整天不切分
+chapter_title_format = "第 {index} 章 · {date}"
+include_system = false          # 是否把系统/工具消息也写进章节
+max_turn_chars = 4000           # 单条消息在章节里最多保留多少字
+
+# ── 日记 ────────────────────────────────────────────────────────────
+diary_engine = "auto"           # auto | local | llm（auto/llm 用模型写；模型不可用时日记留空；local 只用本地摘要）
+diary_style = "first_person"    # first_person | third_person | record
+diary_language = "zh-CN"        # zh-CN | en
+diary_title_format = "{date} · 日记"
+keyword_top_n = 8
+highlight_top_n = 5
+diary_word_limit = 400          # 日记正文字数上限（本地第一人称日记按此截断）
+llm_max_chars = 24000           # 提示词里最多放多少字的对话原文
+llm_timeout_seconds = 60.0
+llm_temperature = 0.4
+# 日记正文来源：memor = 以备忘录为主、对话为辅（默认）；transcript = 只用原始对话
+diary_source = "memor"
+
+# ── 模型端点 ────────────────────────────────────────────────────────
+# 端点和密钥统一在浏览页的「模型配置」按钮里维护；这里不再重复配置。
+# 不配置时自动复用宿主自己配置的模型（core_config.json 的模型槽位）。
+
+# ── 每日备忘录 ───────────────────────────────────────────────────────
+# 抓宿主 recent.json 的 system 备忘录，只追加新增段到 data/chapters/备忘录-YYYY-MM-DD.md。
+# 章节标题默认从备忘录取随机一条（可在界面里手动覆盖）。
+memo_enabled = true             # 是否抓取备忘录（固定每 30 分钟一次）
+auto_title_from_memo = true     # 无手动标题时，是否从备忘录取随机一条当章节标题
+memo_append_mode = "tail"       # 抓取策略：tail = 末段锚点定位（只追新增段，默认）| line = 逐行去重 | append = 整段追加
+
+# ── 检索默认参数（猫娘调取「我说过…吗」）─────────────────────────────
+search_default_days = 365        # 往回查几天（默认扫一年，保证「我说过…吗」能命中）
+search_default_limit = 8         # 最多返回几条
+search_snippet_limit = 120       # 命中片段长度
+search_include_diary = true      # 是否也翻章节/日记
+search_trigger_words = "我说过,我提过,是不是说过,之前说过"   # 提示词里的触发语（供模型参考，中文/英文逗号分隔）
+
+# ── 猫娘日记（任务3）─────────────────────────────────────────────────
+cat_diary_enabled = true        # 是否允许猫娘自己写日记
+cat_diary_dir = "neko_diary"    # 猫娘日记存放目录（单独存放，只追加不覆盖，绝不修改自动日记）
+cat_diary_word_limit = 500      # 猫娘日记单次字数上限
+cat_diary_default_visibility = "public"  # 默认可见性：public=公开，private=仅自己可见（猫娘自己仍读得到）
+cat_diary_default_mood = "neutral"       # 默认心情：excited/happy/calm/tired/anxious/sad/angry/neutral
+# 私密日记是否可读：开启后浏览页/面板也会显示「仅自己可见」的日记；猫娘自己始终读得到
+cat_diary_private_readable = true
+
+# ── 复制短语（浏览页「点内容可复制序号」）────────────────────────────────
+# 点击一行内容会复制成一句可念给猫娘的话，拼法为：
+#   {copy_phrase_prefix} {日期} {copy_phrase_mid} {序号} {copy_phrase_index_unit} {copy_phrase_suffix}
+# 默认 → "把 2026-10-07 的第 13 条念给我听"。四个片段都可自定义。
+copy_phrase_prefix = "把"          # 日期前的词
+copy_phrase_mid = "的第"           # 日期与序号之间的词
+copy_phrase_index_unit = "条"      # 序号后的单位
+copy_phrase_suffix = "念给我听"    # 末尾的短语
+
+# ── 采集 ────────────────────────────────────────────────────────────
+capture_all_sources = false     # 是否连系统/工具消息一起收
+poll_memory_limit = 50          # 每次向消息总线要多少条用户消息
+poll_conversation_limit = 200   # 每次向对话总线要多少条轮次
+
+# 宿主自己的对话存储：<用户数据根>\memory\<角色>\time_indexed.db（或 recent.json）。
+# 实测消息总线只给"用户说过的话"，角色的回复不在总线上，所以默认直接读这份存储，
+# 这样用户与猫娘双方的话都会进章节。关掉就只记总线上能拿到的那一半。
+read_host_memory_store = true
+memory_store_limit = 200        # 每次最多读多少条（SQLite 取最新若干行）
+memory_store_character = ""     # 指定角色目录名；留空 = 自动选最近活跃的那个
+live_refresh_seconds = 300      # 多久刷新一次"今天"的章节
+compile_on_startup = true       # 启动时结算没写日记的日期
+startup_backfill_days = 3       # 启动时最多回补多少天
+finalize_enabled = true         # 是否在后台自动结算（过 0 点写前一天日记，不发提示）
+
+# ── 称呼 ────────────────────────────────────────────────────────────
+master_name = "主人"
+catgirl_name = "猫娘"
+
+# ── 隐私 ────────────────────────────────────────────────────────────
+# 出现在对话里就会被替换成 ＊＊＊ 的字符串，例如 ["13800138000"]
+redact = []

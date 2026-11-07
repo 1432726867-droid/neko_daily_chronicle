@@ -1,0 +1,2929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>对话编年史 · 浏览</title>
+<style>
+  :root {
+    /* ── 与 catgirl_daily_planner 一致的猫娘粉设计 token ── */
+    --pink: #ff8db4;
+    --peach: #ffb88c;
+    --pink-soft: #ffe4ec;
+    --peach-soft: #fff5e6;
+    --panel: #ffffff;
+    --line: #ffd1e0;
+    --line-soft: #ffe1ec;
+    --text: #4a3a3a;
+    --muted: #8a7070;
+    --accent: #d4638a;          /* 深玫瑰（强调字/数字） */
+    --accent-soft: #ffe4ec;
+    --user: #5b9dd9;
+    --neko: #d4638a;
+    --good: #7ec890;
+    --warn: #f0a23a;
+    --bad: #ff6b6b;
+    --grad: linear-gradient(135deg, var(--pink), var(--peach));
+    --shadow: 0 6px 24px rgba(255, 128, 168, 0.18);
+    --shadow-sm: 0 2px 8px rgba(255, 128, 168, 0.14);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #ffe4ec 0%, #fff5e6 100%);
+    color: var(--text);
+    font: 14px/1.7 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  }
+
+  /* ── 顶部：猫娘标题区 ───────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(255, 245, 240, 0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+    padding: 16px 24px 12px;
+  }
+  .title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .title-row .cat { font-size: 26px; line-height: 1; }
+  header h1 {
+    margin: 0; font-size: 24px; font-weight: 800; color: var(--text);
+    letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
+  }
+  .today {
+    font-size: 13px; font-weight: 600; color: var(--accent);
+    background: var(--pink-soft); padding: 4px 10px; border-radius: 999px;
+  }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* ── 按钮条：ghost 浅粉胶囊 + 粉→桃渐变主按钮 ────── */
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  button {
+    border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    padding: 8px 16px; border-radius: 10px; font-family: inherit;
+    background: #f4dde4; color: #8a4a5e; transition: transform .1s, box-shadow .1s;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,128,168,.3); }
+  button.primary {
+    background: var(--grad); color: #fff;
+    box-shadow: 0 4px 12px rgba(255,128,168,.4);
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  input, select {
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; background: #fff; color: var(--text); outline: none;
+  }
+  input:focus, select:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(255,141,180,.22); }
+
+  /* ── 统计卡一排（对应参考图 0/0/0/0/0%） ─────────── */
+  .stats {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+    padding: 16px 24px 0;
+  }
+  .stat {
+    background: rgba(255,255,255,0.86); border-radius: 14px; padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat .num { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ── 主体两栏 ─────────────────────────────────── */
+  main { display: grid; grid-template-columns: 240px 1fr; gap: 16px; padding: 16px 24px 40px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  .card {
+    background: rgba(255, 255, 255, 0.86); border: 1px solid var(--line-soft);
+    border-radius: 16px; padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .card h2 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
+  .days { max-height: 70vh; overflow: auto; }
+  .day {
+    display: flex; justify-content: space-between; gap: 6px; padding: 7px 10px;
+    border-radius: 10px; cursor: pointer; font-size: 13px; transition: background .15s;
+  }
+  .day:hover { background: var(--pink-soft); }
+  .day.active { background: var(--pink-soft); color: var(--accent); font-weight: 700; }
+  .day .meta { color: var(--muted); font-size: 11px; }
+  .day.active .meta { color: var(--accent); }
+
+  /* ── 页签：白色圆角容器 + 粉→桃渐变选中胶囊 ────────── */
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 14px; flex-wrap: wrap;
+    background: #fff; border-radius: 14px; padding: 6px;
+    box-shadow: var(--shadow);
+  }
+  .tab {
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 13px;
+    font-weight: 600; color: var(--muted); transition: all .15s ease;
+  }
+  .tab:hover { background: var(--pink-soft); color: var(--accent); }
+  .tab.active {
+    background: var(--grad); color: #fff;
+    box-shadow: 0 2px 8px rgba(255,128,168,.4);
+  }
+
+  /* ── 表格 ─────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--line-soft); padding: 7px 8px; vertical-align: top; text-align: left; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: #fff; }
+  td.idx { color: var(--muted); width: 56px; white-space: nowrap; }
+  td.time { width: 62px; color: var(--muted); white-space: nowrap; }
+  td.who { width: 76px; white-space: nowrap; font-weight: 700; }
+  tr.user td.who { color: var(--user); }
+  tr.assistant td.who { color: var(--neko); }
+  tr:hover { background: #fff5f8; }
+  tr.hit { background: #fff0c9; }
+  td.text { white-space: pre-wrap; word-break: break-word; }
+  pre.md {
+    white-space: pre-wrap; word-break: break-word; margin: 0;
+    font: 13px/1.75 "Consolas", "Microsoft YaHei", monospace;
+  }
+  pre.md strong { color: var(--accent); }
+  pre.md .quote { color: var(--muted); }
+  pre.md h3, pre.md h4 { margin: 10px 0 6px; }
+
+  .note {
+    background: var(--peach-soft); border: 1px solid #f5c98a;
+    border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px;
+  }
+  .muted { color: var(--muted); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .results { list-style: none; padding: 0; margin: 0; }
+  .results li { border-bottom: 1px solid var(--line-soft); padding: 8px 4px; cursor: pointer; font-size: 13px; border-radius: 8px; }
+  .results li:hover { background: var(--pink-soft); }
+  .results .tag { color: var(--accent); font-weight: 700; margin-right: 6px; }
+  #status { color: var(--muted); font-size: 12px; margin-left: auto; }
+  #llm-status { color: var(--muted); font-size: 12px; }
+  #llm-status.ok { color: var(--good); font-weight: 700; }
+  #llm-status.bad { color: var(--bad); font-weight: 700; }
+  #llm-status.warn { color: var(--warn); font-weight: 700; }
+  textarea { line-height: 1.7; }
+
+  /* ── 模型配置弹窗 ─────────────────────────────── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(74, 42, 51, 0.35);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(3px);
+  }
+  .overlay[hidden] { display: none; }
+  .modal {
+    width: min(560px, 92vw); max-height: 86vh; overflow: auto;
+    background: #fff; border-radius: 18px; padding: 20px 22px;
+    box-shadow: 0 12px 40px rgba(255, 128, 168, 0.35);
+  }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--text); }
+  .modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin: 8px 0 14px; }
+  .model-row {
+    border: 1px solid var(--line-soft); border-radius: 12px;
+    padding: 8px 10px; margin-bottom: 8px; background: #fff;
+  }
+  .model-row.is-active { border-color: var(--pink); background: var(--pink-soft); }
+  .model-row-head { display: flex; align-items: center; gap: 8px; }
+  .model-row input {
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px;
+    font-size: 13px; background: #fff;
+  }
+  .model-row .model-id { flex: 1.2; min-width: 0; }
+  .model-row .model-name { flex: 1; min-width: 0; }
+  .model-pick {
+    width: 26px; height: 26px; padding: 0; flex: none;
+    border-radius: 999px; border: 2px solid var(--line);
+    background: #fff; color: transparent; cursor: pointer; font-size: 0;
+  }
+  .model-row.is-active .model-pick {
+    border-color: var(--accent); background: var(--accent);
+    box-shadow: inset 0 0 0 3px #fff;
+  }
+  .model-toggle {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--muted); font-size: 14px; padding: 0 4px;
+  }
+  .model-del {
+    width: 28px; height: 28px; padding: 0; flex: none;
+    border-radius: 999px; border: none; background: #fde7ee;
+    color: #c0392b; cursor: pointer; font-size: 13px;
+  }
+  .model-del:hover { background: #fbd0dd; }
+  .model-detail { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-soft); }
+  .model-detail label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  .model-detail input { width: 100%; box-sizing: border-box; }
+  .model-detail .row2 { display: flex; gap: 10px; margin-top: 8px; }
+  .model-detail .row2 > div { flex: 1; min-width: 0; }
+  .model-detail .custom-head {
+    font-size: 12px; color: var(--text); cursor: pointer; user-select: none; margin-top: 6px;
+  }
+  .add-model { width: 100%; margin-top: 4px; }
+  .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  .config-modal { width: min(700px, 94vw); }
+  .config-group {
+    border: 1px solid var(--line-soft); border-radius: 12px;
+    padding: 8px 12px 12px; margin-bottom: 10px; background: #fffafc;
+  }
+  .config-group > summary {
+    cursor: pointer; user-select: none; font-size: 13px; font-weight: 800;
+    color: var(--accent); padding: 4px 0;
+  }
+  .config-field { margin-top: 10px; }
+  .config-field label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px;
+  }
+  .config-field .desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .config-field input, .config-field select, .config-field textarea {
+    width: 100%; box-sizing: border-box; font-family: inherit; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; background: #fff;
+  }
+  .config-field textarea { min-height: 54px; resize: vertical; }
+  .config-field .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .config-field .check input { width: auto; }
+  .fetch-drop {
+    margin: 0 0 10px; border: 1px solid var(--line-soft); border-radius: 10px;
+    max-height: 160px; overflow: auto; background: #fff8fa;
+  }
+  .fetch-drop div {
+    padding: 8px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--line-soft);
+  }
+  .fetch-drop div:hover { background: var(--pink-soft); color: var(--accent); }
+
+  /* ── 猫娘日记（只列猫娘自己写的，可上下滚动）────── */
+  .diary-scroll {
+    max-height: 72vh; overflow-y: auto; padding: 2px 8px 2px 2px;
+    scroll-behavior: smooth;
+  }
+  .diary-item {
+    border: 1px solid var(--line-soft); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px; background: #fffafc;
+  }
+  .diary-head {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--line-soft);
+  }
+  .diary-head .date { font-weight: 800; color: var(--accent); }
+  .diary-head .badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .diary-head .badge.cat { background: var(--pink-soft); color: var(--accent); }
+  .diary-body .md { font-family: inherit; }
+  .diary-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .diary-actions button {
+    border: 1px solid var(--line-soft); background: #fff; color: var(--accent);
+    border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .diary-actions button:hover { background: var(--pink-soft); }
+  .diary-actions button.primary { background: var(--grad); color: #fff; border: none; }
+  .entry-edit {
+    width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--line);
+    border-radius: 10px; font: 13px/1.7 'Microsoft YaHei', sans-serif; resize: vertical;
+  }
+  .entry-meta-edit { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .entry-meta-edit select { margin-left: 4px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line-soft); font-family: inherit; }
+  .cat-entry-tags { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .cat-entry-tags .badge { background: var(--pink-soft); color: var(--accent); }
+
+  /* ── 章节图片入口 / 相册合集 ───────────────────── */
+  .day .img-count {
+    border: none; background: transparent; cursor: pointer; padding: 0 2px;
+    color: var(--accent); font-size: 11px; font-weight: 700; font-family: inherit;
+    white-space: nowrap;
+  }
+  .day .img-count:hover { text-decoration: underline; transform: none; box-shadow: none; }
+  .img-entry {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; cursor: pointer; font-family: inherit;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--pink-soft); color: var(--accent);
+  }
+  .img-entry:hover { box-shadow: 0 4px 12px rgba(255,128,168,.3); transform: translateY(-1px); }
+  .img-entry .count {
+    background: var(--accent); color: #fff; border-radius: 999px;
+    padding: 0 7px; font-size: 11px; line-height: 18px; min-width: 18px; text-align: center;
+  }
+  .gallery-modal { width: min(920px, 94vw); }
+  .gallery-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .photo {
+    position: relative; border-radius: 12px; overflow: hidden; cursor: zoom-in;
+    background: #fff; border: 1px solid var(--line-soft); aspect-ratio: 1 / 1;
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo .date-tag {
+    position: absolute; left: 6px; bottom: 6px; padding: 1px 7px;
+    border-radius: 999px; background: rgba(74, 42, 51, .55); color: #fff; font-size: 10px;
+  }
+  .photo .day-tag {
+    position: absolute; left: 6px; top: 6px; padding: 1px 7px;
+    border-radius: 999px; background: var(--grad); color: #fff; font-size: 10px; font-weight: 700;
+  }
+  #photo-overlay .modal { width: min(1100px, 96vw); padding: 12px; background: rgba(255,255,255,.96); }
+  #photo-overlay img { width: 100%; max-height: 82vh; object-fit: contain; border-radius: 10px; display: block; }
+  #photo-overlay .modal-head { margin-bottom: 8px; }
+  @media (max-width: 760px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ── 图片右键菜单 / 图片记忆 / 发送给猫娘 ─────────── */
+  #image-menu {
+    position: fixed; z-index: 120; min-width: 176px; padding: 6px;
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(255, 128, 168, .3);
+  }
+  #image-menu[hidden] { display: none; }
+  #image-menu .menu-note {
+    color: var(--muted); font-size: 11px; padding: 2px 10px 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px;
+  }
+  #image-menu button {
+    display: block; width: 100%; text-align: left; background: transparent;
+    color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 13px;
+  }
+  #image-menu button:hover { background: var(--pink-soft); color: var(--accent); transform: none; box-shadow: none; }
+  #image-menu button.danger { color: #c0392b; }
+  #image-menu button.danger:hover { background: #fde7ee; }
+  .photo .memory-dot {
+    position: absolute; right: 6px; top: 6px; width: 9px; height: 9px;
+    border-radius: 999px; background: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .85);
+  }
+  #image-memory-text, #image-send-text {
+    width: 100%; min-height: 112px; resize: vertical; box-sizing: border-box;
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    font-family: inherit; font-size: 13px; line-height: 1.7; color: var(--text);
+  }
+  #image-memory-text:focus, #image-send-text:focus {
+    outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px rgba(255, 141, 180, .22);
+  }
+
+  /* ── 放映厅：暗色银幕 + 猫娘手记 ─────────────────── */
+  .screening-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; }
+  @media (max-width: 900px) { .screening-wrap { grid-template-columns: 1fr; } }
+  .screen-stage {
+    border-radius: 18px; padding: 14px 16px 16px;
+    background: radial-gradient(circle at 50% 0%, #4a2b3a 0%, #2b1a22 55%, #1d1218 100%);
+    color: #fce9ef; box-shadow: 0 12px 30px rgba(90, 40, 60, .22);
+    display: flex; flex-direction: column; min-height: 460px;
+  }
+  .scene-cover {
+    position: relative; height: 112px; margin: 0 0 10px; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(135deg, rgba(255, 141, 180, .28), rgba(255, 184, 140, .18));
+  }
+  .scene-cover img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .scene-cover-fallback {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #ffd7e5; font-size: 15px; font-weight: 800; letter-spacing: 1px;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, .18), transparent 45%),
+      linear-gradient(135deg, rgba(120, 50, 75, .65), rgba(45, 25, 35, .8));
+  }
+  .scene-cover.has-image .scene-cover-fallback { display: none; }
+  .scene-cover-caption {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 12px 8px;
+    background: linear-gradient(transparent, rgba(20, 10, 15, .78));
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  }
+  .scene-cover-caption strong { color: #fff; font-size: 12px; letter-spacing: .5px; }
+  .scene-cover-caption span { color: #ffd7e5; font-size: 10px; }
+  .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .screen-title { font-size: 14px; font-weight: 800; letter-spacing: .5px; }
+  .screen-badge {
+    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255, 255, 255, .12); color: #ffd7e5;
+  }
+  .screen-badge.playing { background: rgba(126, 200, 144, .22); color: #b8f0c8; }
+  .screen-badge.paused { background: rgba(240, 162, 58, .22); color: #ffd08a; }
+  .screen-badge.ended { background: rgba(255, 255, 255, .1); color: #d9c3cc; }
+  .screen-progress {
+    height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .12);
+    margin: 10px 0 12px; overflow: hidden;
+  }
+  .screen-progress span { display: block; height: 100%; width: 0; background: var(--grad); transition: width .25s ease; }
+  .screen-lines {
+    flex: 1; overflow: auto; padding: 4px 6px 6px 2px; scroll-behavior: smooth;
+    max-height: 58vh;
+  }
+  .screen-row { display: flex; gap: 9px; padding: 7px 2px; align-items: flex-start; }
+  .screen-row .sr-index {
+    flex: none; width: 42px; text-align: right; color: #c8a3b3;
+    font: 11px/1.6 Consolas, monospace; padding-top: 4px;
+  }
+  .screen-row .sr-time { flex: none; width: 40px; color: #b8909f; font-size: 11px; padding-top: 5px; }
+  .screen-row .sr-bubble {
+    max-width: min(78%, 720px); border-radius: 12px; padding: 8px 11px;
+    background: rgba(255, 255, 255, .09); line-height: 1.7; font-size: 13px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .screen-row.user .sr-bubble { background: rgba(91, 157, 217, .2); }
+  .screen-row.assistant .sr-bubble { background: rgba(212, 99, 138, .22); }
+  .screen-row .sr-who { display: block; font-size: 11px; font-weight: 800; color: #ffd7e5; margin-bottom: 2px; }
+  .screen-row.user .sr-who { color: #b9dcff; }
+  .screen-row.future .sr-bubble { filter: blur(4px); opacity: .55; user-select: none; }
+  .screen-row.revealed .sr-bubble { filter: none; opacity: 1; user-select: auto; }
+  .screen-row.current .sr-bubble { outline: 1px solid rgba(255, 208, 138, .8); box-shadow: 0 0 0 3px rgba(255, 208, 138, .12); }
+  .screen-row.cat-here { position: relative; }
+  .screen-row.cat-here::before {
+    content: "🐾 她看到这里"; position: absolute; left: 0; top: -9px;
+    font-size: 10px; font-weight: 700; color: #ffd08a; background: #2b1a22; padding: 0 6px;
+  }
+  .screen-row.cat-here { border-top: 1px dashed rgba(255, 208, 138, .45); margin-top: 10px; padding-top: 10px; }
+  .screen-empty { color: #d9c3cc; text-align: center; padding: 60px 10px; font-size: 13px; }
+  .screen-side { display: flex; flex-direction: column; gap: 12px; }
+  .screen-panel {
+    border: 1px solid var(--line-soft); border-radius: 14px; padding: 12px 14px;
+    background: #fffafc;
+  }
+  .screen-panel h3 { margin: 0 0 8px; font-size: 13px; color: var(--accent); }
+  .screen-stat { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; }
+  .screen-stat span:first-child { color: var(--muted); }
+  .screen-stat strong { color: var(--text); font-weight: 700; }
+  .screen-marks { max-height: 190px; overflow: auto; }
+  .mark-item { border-left: 3px solid var(--line); padding: 3px 0 3px 8px; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
+  .mark-item .mark-meta { color: var(--muted); font-size: 11px; }
+  .mark-item.catgirl { border-left-color: var(--pink); }
+  .mark-item.master { border-left-color: var(--user); }
+  .screen-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+  .screen-controls button { padding: 6px 11px; font-size: 12px; }
+  .screen-controls input { width: 74px; }
+  .screen-banner {
+    margin: 0 0 10px; padding: 8px 11px; border-radius: 10px;
+    background: rgba(255, 208, 138, .14); border: 1px solid rgba(255, 208, 138, .45);
+    color: #ffe4b8; font-size: 12px; line-height: 1.6;
+  }
+  .screen-note {
+    width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 10px;
+    padding: 7px 10px; font-family: inherit; font-size: 12px; background: #fff;
+  }
+  .screen-mini-hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .screening-review {
+    max-height: 180px; overflow: auto; font-size: 12px; line-height: 1.7;
+    color: var(--text); white-space: pre-wrap; border-left: 3px solid var(--pink);
+    padding-left: 9px;
+  }
+  .screening-review .review-meta { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .screening-cover-name { font-size: 12px; color: var(--text); word-break: break-all; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title-row">
+    <span class="cat">🐱</span>
+    <h1>对话编年史</h1>
+    <span class="today" id="today-label"></span>
+  </div>
+  <div class="sub">主人~让猫娘看看今天都记下了什么吧~喵呜~（点任意一行对话，即可让猫娘念给你听）</div>
+  <div class="bar">
+    <button class="primary" id="btn-harvest">🔄 立即补录</button>
+    <button id="btn-today">📖 生成今天章节</button>
+    <button id="btn-diary">📔 生成日记</button>
+    <button id="btn-day">✨ 生成所选日期</button>
+    <input id="search" placeholder="搜索对话原文，例如：油菜花" style="min-width:240px" />
+    <button id="btn-search">🔍 搜索</button>
+    <button id="btn-models">⚙️ 模型配置</button>
+    <button id="btn-config">🛠️ 插件配置</button>
+    <button id="btn-gallery">🖼️ 相册合集</button>
+    <span id="status"></span>
+  </div>
+</header>
+
+<div id="models-overlay" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">模型目录</div>
+      <div class="modal-actions">
+        <button id="btn-restore-models">恢复默认模型</button>
+        <button id="btn-fetch-models" class="primary">获取可用模型</button>
+      </div>
+    </div>
+    <div class="modal-sub" id="models-base-url"></div>
+    <div id="fetch-drop" class="fetch-drop" hidden></div>
+    <div id="models-list"></div>
+    <button id="btn-add-model" class="add-model">＋ 添加模型</button>
+    <div class="modal-foot">
+      <button id="btn-cancel-models">取消</button>
+      <button id="btn-save-models" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="config-overlay" class="overlay" hidden>
+  <div class="modal config-modal">
+    <div class="modal-head">
+      <div class="modal-title">🛠️ 插件配置</div>
+      <div class="modal-actions">
+        <span class="muted" id="config-warn"></span>
+        <button id="btn-config-close">关闭</button>
+      </div>
+    </div>
+    <div class="modal-sub">这里的改动会写进插件配置，保存后立即生效（模型 API Key 留空表示保持原值）。</div>
+    <div id="config-fields"></div>
+    <div class="modal-foot">
+      <button id="btn-config-cancel">取消</button>
+      <button id="btn-config-save" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="gallery-overlay" class="overlay" hidden>
+  <div class="modal gallery-modal">
+    <div class="modal-head">
+      <div class="modal-title">📸 相册合集</div>
+      <div class="modal-actions">
+        <span class="muted" id="gallery-count"></span>
+        <button id="btn-gallery-upload" class="primary">＋ 上传图片</button>
+        <button id="btn-gallery-close">关闭</button>
+      </div>
+    </div>
+    <div class="modal-sub">所有章节里保存的照片都会出现在这里；点一张可以放大看。</div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+</div>
+
+<div id="chapter-images-overlay" class="overlay" hidden>
+  <div class="modal gallery-modal">
+    <div class="modal-head">
+      <div class="modal-title" id="chapter-images-title">📸 本章图片</div>
+      <div class="modal-actions">
+        <span class="muted" id="chapter-images-summary"></span>
+        <button id="btn-chapter-images-upload" class="primary">＋ 上传图片</button>
+        <button id="btn-chapter-images-close">关闭</button>
+      </div>
+    </div>
+    <div class="modal-sub">这一章保存的照片；点一张可以放大看原图。</div>
+    <div class="gallery-grid" id="chapter-images-grid"></div>
+  </div>
+</div>
+
+<div id="photo-overlay" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="photo-title"></div>
+      <div class="modal-actions">
+        <span id="photo-zoom-info" class="muted" style="font-size:12px;margin-right:8px"></span>
+        <button id="btn-photo-original" class="ghost">查看原图</button>
+        <button id="btn-photo-close">关闭</button>
+      </div>
+    </div>
+    <div id="photo-stage" style="overflow:auto;max-height:82vh;text-align:center;cursor:zoom-in">
+      <img id="photo-img" alt="章节图片" src="" style="max-width:100%;transform-origin:50% 50%;transition:transform .15s" />
+    </div>
+    <div class="hint" style="margin-top:6px">滚轮缩放，拖动可平移</div>
+  </div>
+</div>
+
+<div id="confirm-overlay" class="overlay" hidden>
+  <div class="modal" style="width:min(420px,90vw)">
+    <div class="modal-head">
+      <div class="modal-title" id="confirm-title">确认</div>
+    </div>
+    <div class="modal-sub" id="confirm-text"></div>
+    <div class="modal-actions" style="justify-content:flex-end">
+      <button id="confirm-cancel">取消</button>
+      <button id="confirm-ok" class="primary">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="image-memory-overlay" class="overlay" hidden>
+  <div class="modal" style="width:min(520px,92vw)">
+    <div class="modal-head">
+      <div class="modal-title" id="image-memory-title">图片记忆</div>
+      <div class="modal-actions">
+        <button id="btn-image-memory-cancel">取消</button>
+        <button id="btn-image-memory-save" class="primary">保存</button>
+      </div>
+    </div>
+    <div class="modal-sub" id="image-memory-sub"></div>
+    <textarea id="image-memory-text" placeholder="写下这张图片对你的意义…"></textarea>
+    <div class="hint">保存后，发送给猫娘时可以直接带上这段文字；清空内容再保存就会删除记忆。</div>
+  </div>
+</div>
+
+<div id="image-send-overlay" class="overlay" hidden>
+  <div class="modal" style="width:min(520px,92vw)">
+    <div class="modal-head">
+      <div class="modal-title" id="image-send-title">发送给猫娘</div>
+      <div class="modal-actions">
+        <button id="btn-image-send-cancel">取消</button>
+        <button id="btn-image-send" class="primary">发送</button>
+      </div>
+    </div>
+    <div class="modal-sub" id="image-send-sub"></div>
+    <textarea id="image-send-text" placeholder="附带文字（可选）…"></textarea>
+    <div class="hint">留空就只发送图片；这里默认带入图片记忆，也可以直接改成别的话。</div>
+  </div>
+</div>
+
+<div id="image-menu" hidden>
+  <div class="menu-note" id="image-menu-note"></div>
+  <button id="menu-jump">跳转到当天</button>
+  <button id="menu-memory">图片记忆…</button>
+  <button id="menu-send">发送给猫娘…</button>
+  <button id="menu-delete" class="danger">删除图片</button>
+</div>
+
+<input type="file" id="image-file" accept="image/*" multiple hidden />
+
+<section class="stats">
+  <div class="stat"><div class="num" id="stat-days" style="color:var(--accent)">0</div><div class="lbl">记录天数</div></div>
+  <div class="stat"><div class="num" id="stat-turns" style="color:var(--good)">0</div><div class="lbl">总句数</div></div>
+  <div class="stat"><div class="num" id="stat-chapters" style="color:var(--warn)">0</div><div class="lbl">章节</div></div>
+  <div class="stat"><div class="num" id="stat-diaries" style="color:var(--accent)">0</div><div class="lbl">日记</div></div>
+  <div class="stat"><div class="num" id="stat-memories" style="color:var(--good)">0</div><div class="lbl">回忆录收藏</div></div>
+</section>
+
+<main>
+  <section class="card">
+    <h2>📅 日期</h2>
+    <div class="days" id="days"></div>
+    <div class="hint" id="stats"></div>
+  </section>
+
+  <section class="card">
+    <div id="alert"></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="chat">💬 对话记录</div>
+      <div class="tab" data-tab="screening">🎬 放映厅</div>
+      <div class="tab" data-tab="chapter">📖 章节</div>
+      <div class="tab" data-tab="diary">📔 日记</div>
+      <div class="tab" data-tab="diaries">🐱 猫娘日记</div>
+      <div class="tab" data-tab="memo">📝 备忘录</div>
+      <div class="tab" data-tab="memories">⭐ 回忆录</div>
+      <div class="tab" data-tab="capsule">💌 时间胶囊</div>
+    </div>
+    <div id="view-chat">
+      <div class="bar" style="margin:0 0 8px">
+        <span class="muted" id="chat-meta"></span>
+        <button id="btn-more">加载更多</button>
+        <span class="hint">勾选序号可收藏进回忆录；点内容可复制序号</span>
+      </div>
+      <div style="max-height:66vh; overflow:auto">
+        <table>
+          <thead><tr><th>藏</th><th>#</th><th>时间</th><th>说话人</th><th>内容</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="view-screening" hidden>
+      <div class="bar" style="margin:0 0 10px">
+        <span class="muted" id="screening-meta"></span>
+        <button class="primary" id="btn-screening-start">▶ 开始放映</button>
+        <button id="btn-screening-next-scene">⏭ 下一段</button>
+        <button id="btn-screening-next-line">▶ 下一句</button>
+        <button id="btn-screening-prev">⏮ 上一段</button>
+        <button id="btn-screening-pause">⏸ 停在这里</button>
+        <button id="btn-screening-invite">🐱 让她说说</button>
+        <button id="btn-screening-mini">↗ 桌面小窗</button>
+        <span class="hint" id="screening-hint"></span>
+      </div>
+      <div class="screening-wrap">
+        <div class="screen-stage">
+          <div class="scene-cover" id="screening-cover">
+            <img id="screening-cover-img" alt="" hidden />
+            <div class="scene-cover-fallback" id="screening-cover-fallback">场景封面</div>
+            <div class="scene-cover-caption">
+              <strong id="screening-cover-scene">第 1 段</strong>
+              <span id="screening-cover-note">自动封面</span>
+            </div>
+          </div>
+          <div class="screen-head">
+            <div class="screen-title" id="screening-scene">银幕 · 等待开场</div>
+            <div class="screen-badge" id="screening-status">未开始</div>
+          </div>
+          <div class="screen-progress"><span id="screening-bar"></span></div>
+          <div id="screening-banner"></div>
+          <div class="screen-lines" id="screening-lines">
+            <div class="screen-empty">还没有开始放映。选一天，然后点「开始放映」。</div>
+          </div>
+        </div>
+        <div class="screen-side">
+          <div class="screen-panel">
+            <h3>放映进度</h3>
+            <div class="screen-stat"><span>银幕</span><strong id="screening-cursor">第 0 条</strong></div>
+            <div class="screen-stat"><span>猫娘看到</span><strong id="screening-cat-cursor">第 0 条</strong></div>
+            <div class="screen-stat"><span>停在</span><strong id="screening-stop-at">不设终点</strong></div>
+            <div class="screen-stat"><span>本日共</span><strong id="screening-total">0 条</strong></div>
+          </div>
+          <div class="screen-panel">
+            <h3>放映手记</h3>
+            <div class="screen-marks" id="screening-marks"><span class="muted">还没有手记。</span></div>
+            <div class="screen-mini-hint" style="margin-top:8px">猫娘开口时，放映会自动停下来。</div>
+          </div>
+          <div class="screen-panel">
+            <h3>观后感</h3>
+            <div class="screening-review" id="screening-review"><span class="muted">还没有观后感。</span></div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <button id="btn-screening-review" style="padding:6px 10px">✍️ 写观后感</button>
+              <button id="btn-screening-review-again" style="padding:6px 10px">↻ 重新写</button>
+            </div>
+            <div class="screen-mini-hint" style="margin-top:6px">只根据已经看到的部分写；模型不可用时用本地整理。</div>
+          </div>
+          <div class="screen-panel">
+            <h3>场景封面</h3>
+            <div class="screening-cover-name" id="screening-cover-name"><span class="muted">这一天还没有图片</span></div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <button id="btn-screening-cover-next" style="padding:6px 10px">换一张</button>
+              <button id="btn-screening-cover-clear" style="padding:6px 10px">恢复自动</button>
+            </div>
+            <div class="screen-mini-hint" style="margin-top:6px">封面来自当天的章节图集；也可以先在「章节图片」里上传。</div>
+          </div>
+          <div class="screen-panel">
+            <h3>跳到某一条</h3>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="screening-jump" class="screen-note" type="number" min="1" placeholder="序号" style="width:80px" />
+              <button id="btn-screening-jump" style="padding:6px 10px">跳过去</button>
+            </div>
+            <div style="margin-top:8px">
+              <textarea id="screening-note" class="screen-note" rows="2" placeholder="暂停时想留一句话…"></textarea>
+            </div>
+            <button id="btn-screening-save-note" style="margin-top:6px;padding:6px 10px">写进手记</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="view-chapter" hidden>
+      <div class="bar" style="margin:0 0 8px">
+        <button class="img-entry" id="btn-chapter-images">
+          🖼️ 本章图片 <span class="count" id="chapter-image-count">0</span> 张
+        </button>
+        <span class="hint" id="chapter-image-hint">点击上传图片，保存到这一章的图集</span>
+      </div>
+      <pre class="md" id="chapter"></pre>
+    </div>
+    <div id="view-diary" hidden>
+      <div class="bar" style="margin:0 0 8px">
+        <span class="muted">日记正文（可修改）</span>
+        <button id="btn-save-diary">保存日记</button>
+      </div>
+      <textarea id="diary" rows="18" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:10px; font:13px/1.7 Consolas,'Microsoft YaHei',monospace; box-sizing:border-box" placeholder="这一天还没有日记，点「生成所选日期」后即可编辑。"></textarea>
+    </div>
+    <div id="view-diaries" hidden>
+      <div class="bar" style="margin:0 0 8px">
+        <span class="muted" id="diaries-meta"></span>
+        <input id="diary-search" placeholder="在猫娘日记里搜关键词…" style="min-width:200px" />
+        <button id="btn-diary-search">🔍 检索</button>
+        <button id="btn-diary-stats">📊 心情统计</button>
+        <button id="btn-diary-throwback">🕰️ 往年今日</button>
+        <button id="btn-reload-diaries">🔄 重新加载</button>
+      </div>
+      <div class="hint" id="diary-extra" style="margin:0 0 8px"></div>
+      <div class="diary-scroll" id="diaries"></div>
+    </div>
+    <div id="view-memo" hidden>
+      <div class="bar" style="margin:0 0 8px">
+        <span class="muted">章节标题</span>
+        <input id="memo-title" placeholder="留空则下次自动从备忘录取随机一条" style="flex:1; min-width:180px" />
+        <button id="btn-save-title">保存标题</button>
+        <button id="btn-save-memo">保存备忘录</button>
+        <button id="btn-tidy-memo">✨ 整理备忘录</button>
+        <button id="btn-fetch-memo" class="primary">立即抓取</button>
+      </div>
+      <div class="hint" style="margin:0 0 8px"><span id="memo-tidy-hint" style="color:var(--accent);font-weight:600"></span>每隔约 30 分钟抓一次宿主的 system 备忘录，只追加新增段；可在此手动修改或立即抓取。</div>
+      <textarea id="memo" rows="18" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:10px; font:13px/1.7 Consolas,'Microsoft YaHei',monospace; box-sizing:border-box" placeholder="每天新增的备忘录会自动追加到这里……"></textarea>
+    </div>
+    <div id="view-search" hidden>
+      <ul class="results" id="results"></ul>
+    </div>
+    <div id="view-memories" hidden>
+      <div class="hint" style="margin:0 0 8px">点一条收藏，跳到那天的对话记录并高亮它。</div>
+      <ul class="results" id="memories"></ul>
+    </div>
+    <div id="view-capsule" hidden>
+      <div class="bar" style="margin:0 0 8px">
+        <span class="muted">写给未来某一天的话</span>
+        <input id="capsule-date" type="date" style="min-width:150px" />
+        <button id="btn-capsule-write" class="primary">封存时间胶囊</button>
+        <span class="hint">到期前只显示日期，到期后正文才会出现。</span>
+      </div>
+      <textarea id="capsule-text" rows="5" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:10px; font:13px/1.7 Consolas,'Microsoft YaHei',monospace; box-sizing:border-box" placeholder="想对未来的自己或猫娘说什么…（最多 4000 字）"></textarea>
+      <div class="hint" id="capsule-meta" style="margin:8px 0"></div>
+      <div id="capsules"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// 插件 id 直接从地址里取，页面对任何安装都通用
+const pluginId = location.pathname.split("/").filter(Boolean)[1] || "neko_daily_chronicle";
+const PAGE = 200;
+
+const state = {
+  days: [], selected: "", rows: [], total: 0, tab: "chat", memories: new Set(), copy: null,
+  chapterImages: [], imageTarget: "", chapterImageDay: "", memoTidiedAt: "",
+  menuTarget: null, photoItem: null,
+  screening: {
+    loaded: false, enabled: false, date: "", data: null, session: null, progress: null,
+    scenes: [], rows: [], start: 1, lastKey: "", busy: false, autoTimer: null, pollTimer: null,
+    coverLoadedFor: "", coverRequest: 0, coverCache: {},
+  },
+};
+
+// 大窗/小窗都打开时，只允许一个窗口自动推进，避免同一秒跳两条。
+const SCREENING_DRIVER = "big:" + Math.random().toString(36).slice(2, 8);
+const SCREENING_CHANNEL = ("BroadcastChannel" in window) ? new BroadcastChannel("neko-screening") : null;
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function say(text, isError) {
+  $("status").textContent = text || "";
+  $("alert").innerHTML = isError ? '<div class="note">' + escapeHtml(text) + "</div>" : "";
+}
+
+function escapeHtml(text) {
+  return String(text == null ? "" : text)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// 通用确认弹窗：返回 Promise<boolean>，确定 true / 取消或 Esc false
+function confirmDialog(title, text, okLabel) {
+  return new Promise((resolve) => {
+    const overlay = $("confirm-overlay");
+    $("confirm-title").textContent = title || "确认";
+    $("confirm-text").textContent = text || "";
+    $("confirm-ok").textContent = okLabel || "确定";
+    overlay.hidden = false;
+    $("confirm-ok").focus();
+    const done = (value) => {
+      overlay.hidden = true;
+      $("confirm-ok").onclick = null;
+      $("confirm-cancel").onclick = null;
+      overlay.onclick = null;
+      document.removeEventListener("keydown", onKey);
+      resolve(value);
+    };
+    const onKey = (event) => { if (event.key === "Escape") done(false); };
+    $("confirm-ok").onclick = () => done(true);
+    $("confirm-cancel").onclick = () => done(false);
+    overlay.onclick = (event) => { if (event.target === overlay) done(false); };
+    document.addEventListener("keydown", onKey);
+  });
+}
+
+// 顶部统计卡：用已加载的 days / memories 现算，不额外请求后端
+function renderStats() {
+  const days = state.days || [];
+  const turns = days.reduce((s, d) => s + (d.turns || 0), 0);
+  const chapters = days.reduce((s, d) => s + (d.chapter ? 1 : 0), 0);
+  const diaries = days.reduce((s, d) => s + (d.diary ? 1 : 0), 0);
+  $("stat-days").textContent = days.length;
+  $("stat-turns").textContent = turns;
+  $("stat-chapters").textContent = chapters;
+  $("stat-diaries").textContent = diaries;
+  $("stat-memories").textContent = state.memories.size;
+}
+
+// 极简 markdown 渲染：标题、粗体、引用行——够看章节与日记，不引外部库
+function renderMarkdown(text) {
+  const lines = escapeHtml(text || "").split("\n");
+  const out = [];
+  for (const line of lines) {
+    if (/^###\s+/.test(line)) out.push("<h4>" + line.replace(/^###\s+/, "") + "</h4>");
+    else if (/^##\s+/.test(line)) out.push("<h3>" + line.replace(/^##\s+/, "") + "</h3>");
+    else if (/^#\s+/.test(line)) out.push("<h3>" + line.replace(/^#\s+/, "") + "</h3>");
+    else if (/^&gt;\s?/.test(line)) out.push('<div class="quote">' + line.replace(/^&gt;\s?/, "") + "</div>");
+    else out.push(line);
+  }
+  return out.join("\n").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+// 调插件入口：POST /runs → 轮询 → /runs/{id}/export
+async function callEntry(entryId, args) {
+  let response;
+  try {
+    response = await fetch("/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plugin_id: pluginId, entry_id: entryId, args: args || {} }),
+    });
+  } catch (error) {
+    throw new Error("连不上宿主服务：" + error.message);
+  }
+  if (!response.ok) {
+    const detail = await response.text();
+    if (response.status === 404) {
+      throw new Error("插件没在运行（或入口未注册），请在插件管理器里启动它再刷新本页。原始信息：" + detail.slice(0, 160));
+    }
+    throw new Error("宿主返回 " + response.status + "：" + detail.slice(0, 160));
+  }
+  const run = await response.json();
+  for (let i = 0; i < 600; i += 1) {
+    await sleep(400);
+    const record = await (await fetch("/runs/" + run.run_id)).json();
+    if (["succeeded", "failed", "timeout", "canceled"].includes(record.status)) {
+      if (record.status !== "succeeded") {
+        // 失败时再取一次 export，把入口返回的具体原因一起显示出来
+        let detail = "";
+        try {
+          const failed = await (await fetch("/runs/" + run.run_id + "/export")).json();
+          const item = (failed.items || [])[0];
+          detail = (item && item.json && item.json.error && item.json.error.message) || "";
+        } catch (ignored) { /* 拿不到细节就只报状态 */ }
+        throw new Error("这次调用 " + record.status + (detail ? "：" + detail : ""));
+      }
+      break;
+    }
+  }
+  const exported = await (await fetch("/runs/" + run.run_id + "/export")).json();
+  const item = (exported.items || [])[0];
+  const payload = item && item.json ? item.json : null;
+  if (!payload) throw new Error("没有拿到结果");
+  if (payload.success === false || payload.error) {
+    throw new Error(payload.error || "入口返回失败");
+  }
+  return payload.data;
+}
+
+async function guard(label, fn) {
+  say(label + "…");
+  try {
+    const value = await fn();
+    say("");
+    return value;
+  } catch (error) {
+    say(error.message, true);
+    return null;
+  }
+}
+
+async function loadDays() {
+  // limit: 0 = 全部日期；写死天数会让更早的记录从列表里消失
+  const data = await guard("读取日期列表", () => callEntry("list_days", { limit: 0 }));
+  if (!data) return;
+  state.days = data.days || [];
+  if (!state.selected && state.days.length) state.selected = state.days[0].date;
+  renderDays();
+}
+
+function renderDays() {
+  const box = $("days");
+  box.innerHTML = "";
+  if (!state.days.length) {
+    box.innerHTML = '<div class="muted">还没有记录。点上面「立即补录」。</div>';
+  }
+  for (const day of state.days) {
+    const line = document.createElement("div");
+    line.className = "day" + (day.date === state.selected ? " active" : "");
+    const marks = (day.chapter ? "章" : "·") + (day.diary ? "记" : "·");
+    const dateLabel = document.createElement("span");
+    dateLabel.textContent = day.date;
+    const meta = document.createElement("span");
+    meta.className = "meta";
+    meta.textContent = marks + " " + (day.turns || 0) + " 句 ";
+    // 每个章节的图片入口：显示已保存数量，点一下打开本章图片弹窗
+    const badge = document.createElement("button");
+    badge.className = "img-count";
+    badge.title = "查看/上传这一章的图片";
+    badge.textContent = "🖼" + (day.images || 0);
+    badge.onclick = (event) => {
+      event.stopPropagation();
+      openChapterImages(day.date);
+    };
+    meta.appendChild(badge);
+    line.append(dateLabel, meta);
+    line.onclick = () => {
+      state.selected = day.date;
+      renderDays();
+      openTab("chat");
+      loadChat(true);
+    };
+    box.appendChild(line);
+  }
+  const total = state.days.reduce((sum, day) => sum + (day.turns || 0), 0);
+  $("stats").textContent = state.days.length + " 天 ｜ 共 " + total + " 句";
+  $("chat-meta").textContent = state.selected ? state.selected : "";
+  renderStats();
+}
+
+async function loadChat(reset) {
+  if (!state.selected) return;
+  if (reset) { state.rows = []; state.total = 0; $("rows").innerHTML = ""; }
+  const start = state.rows.length + 1;
+  const data = await guard("读取 " + state.selected + " 的对话", () =>
+    callEntry("read_day", { date: state.selected, start: start, count: PAGE })
+  );
+  if (!data) return;
+  state.total = data.total || 0;
+  state.rows = state.rows.concat(data.items || []);
+  appendRows(data.items || []);
+  $("chat-meta").textContent =
+    state.selected + " ｜ 已显示 " + state.rows.length + " / " + state.total + " 句";
+  $("btn-more").disabled = state.rows.length >= state.total;
+}
+
+function copyText(text) {
+  // 在宿主 iframe 里 navigator.clipboard 可能不可用（非安全上下文 / 未授权），
+  // 所以先试 Clipboard API，失败再退回隐藏 textarea + execCommand。
+  const done = () => {
+    say("已复制：" + text);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(done, fallbackCopy);
+  }
+  return fallbackCopy();
+
+  function fallbackCopy() {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) { done(); return Promise.resolve(); }
+    say("复制失败，请手动复制：" + text, true);
+    return Promise.reject(new Error("copy failed"));
+  }
+}
+
+async function appendRows(items) {
+  const body = $("rows");
+  for (const row of items) {
+    const tr = document.createElement("tr");
+    tr.className = row.role || "";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.memories.has(row.date + ":" + row.index);
+    checkbox.title = "收藏进回忆录";
+    checkbox.onchange = () => toggleMemory(row, checkbox.checked);
+    const cbCell = document.createElement("td");
+    cbCell.className = "idx";
+    cbCell.appendChild(checkbox);
+
+    const idxCell = document.createElement("td");
+    idxCell.className = "idx";
+    idxCell.textContent = "#" + row.index;
+    const timeCell = document.createElement("td");
+    timeCell.className = "time";
+    timeCell.textContent = row.time;
+    const whoCell = document.createElement("td");
+    whoCell.className = "who";
+    whoCell.textContent = row.speaker;
+    const textCell = document.createElement("td");
+    textCell.className = "text";
+    textCell.textContent = row.text;
+
+    // 点内容可复制序号：复制成可直接对猫娘说的短语（含日期+序号；片段可配置）
+    tr.onclick = (event) => {
+      if (event.target === checkbox) return;
+      const cp = state.copy || { prefix: "把", mid: "的第", index_unit: "条", suffix: "念给我听" };
+      const phrase = (cp.prefix + " " + row.date + " " + cp.mid + " " + row.index + " " + cp.index_unit + " " + cp.suffix).replace(/\s+/g, " ").trim();
+      copyText(phrase);
+    };
+    tr.append(cbCell, idxCell, timeCell, whoCell, textCell);
+    body.appendChild(tr);
+  }
+}
+
+async function loadChapter() {
+  if (!state.selected) return;
+  const data = await guard("读取章节", () => callEntry("read_chapter", { date: state.selected }));
+  if (!data) return;
+  $("chapter").innerHTML = data.exists
+    ? renderMarkdown(data.markdown)
+    : '<span class="muted">这一天还没有章节，点「生成所选日期」。</span>';
+}
+
+// ── 回忆录（收藏）──────────────────────────────────────────────
+
+async function loadMemories() {
+  const data = await guard("读取回忆录", () => callEntry("memories", {}));
+  if (!data) return;
+  state.memories = new Set((data.items || []).map((item) => item.date + ":" + item.index));
+  renderStats();
+}
+
+async function toggleMemory(row, on) {
+  const data = await guard(on ? "收藏…" : "取消收藏…", () =>
+    callEntry("toggle_memory", { date: row.date, index: row.index, on: on })
+  );
+  if (!data) return;
+  const key = row.date + ":" + row.index;
+  if (data.saved) state.memories.add(key);
+  else state.memories.delete(key);
+  say("已" + (data.saved ? "收藏" : "取消收藏") + " 第 " + row.index + " 条（回忆录共 " + data.total + " 条）");
+  await loadMemories();
+}
+
+function highlightRow(index) {
+  const rows = document.querySelectorAll("#rows tr");
+  for (const row of rows) row.classList.remove("hit");
+  const row = rows[index - 1];
+  if (row) { row.classList.add("hit"); row.scrollIntoView({ block: "center" }); }
+}
+
+async function loadMemoriesView() {
+  const data = await guard("读取回忆录", () => callEntry("memories", {}));
+  if (!data) return;
+  const list = $("memories");
+  list.innerHTML = "";
+  const items = data.items || [];
+  if (!items.length) {
+    list.innerHTML = '<li class="muted">还没有收藏。到「对话记录」里勾选序号即可。</li>';
+    return;
+  }
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.innerHTML =
+      '<span class="tag">#' + item.index + "</span>" +
+      escapeHtml(item.date) + " " + escapeHtml(item.time) + " " +
+      "<strong>" + escapeHtml(item.speaker) + "</strong>：" +
+      escapeHtml(String(item.text || "").slice(0, 120));
+    li.onclick = () => {
+      state.selected = item.date;
+      renderDays();
+      openTab("chat");
+      state.rows = [];
+      loadChat(true).then(() => highlightRow(item.index));
+    };
+    list.appendChild(li);
+  }
+}
+
+async function loadCapsules() {
+  const data = await guard("读取时间胶囊", () =>
+    callEntry("capsule_list", { limit: 100, include_locked: true })
+  );
+  if (!data) return;
+  const due = data.due_today || 0;
+  const items = data.items || [];
+  // 她写的（catgirl）和我写的（master）分开显示：只有她写的那几枚才算「写好了」
+  const her = items.filter((item) => item.author === "catgirl");
+  const mine = items.filter((item) => item.author !== "catgirl");
+  $("capsule-meta").textContent =
+    (data.count || 0) + " 枚 ｜ 她写 " + her.length + " ｜ 我写 " + mine.length +
+    (due ? " ｜ 今天到期 " + due + " 枚" : "");
+  const box = $("capsules");
+  if (!items.length) {
+    box.innerHTML = '<div class="muted">还没有时间胶囊。写一段话，选一个未来的日期封存吧。</div>';
+    return;
+  }
+  const render = (item) => {
+    const head =
+      "<strong>" + escapeHtml(item.author_name || item.author || "") + "</strong> · " +
+      escapeHtml(item.unlock_day || "");
+    const status = item.locked
+      ? '<span class="muted">🔒 未到期（还有 ' + (item.days_left || 0) + " 天）</span>"
+      : '<span style="color:var(--accent);font-weight:600">✅ 已到期</span>';
+    const body = item.locked
+      ? '<div class="hint">到期后才能读到正文。</div>'
+      : '<pre class="md" style="max-height:240px;overflow:auto;margin:6px 0 0">' +
+        escapeHtml(item.text || "") + "</pre>";
+    return (
+      '<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0">' +
+      '<div class="bar" style="margin:0 0 6px"><span>' + head + " " + status + "</span>" +
+      '<span class="muted">' + (item.chars || 0) + " 字</span></div>" +
+      body +
+      "</div>"
+    );
+  };
+  const section = (label, list) =>
+    list.length
+      ? '<div class="hint" style="margin:10px 0 4px"><strong>' + escapeHtml(label) + "</strong> 写的时间胶囊（" + list.length + "）</div>" +
+        list.map(render).join("")
+      : "";
+  box.innerHTML =
+    section(her[0] ? her[0].author_name || "猫娘" : "猫娘", her) +
+    section(mine[0] ? mine[0].author_name || "主人" : "主人", mine);
+}
+
+$("btn-capsule-write").onclick = async () => {
+  const text = ($("capsule-text").value || "").trim();
+  const date = $("capsule-date").value || "";
+  if (!text) { say("胶囊正文不能为空", true); return; }
+  if (!date) { say("请先选择解锁日期", true); return; }
+  const data = await guard("封存时间胶囊", () =>
+    callEntry("capsule_write", { text: text, unlock_date: date })
+  );
+  if (!data) return;
+  $("capsule-text").value = "";
+  say("时间胶囊已封存，解锁日 " + (data.unlock_day || date));
+  await loadCapsules();
+};
+
+async function loadDiary() {
+  if (!state.selected) return;
+  const data = await guard("读取日记", () => callEntry("read_diary", { date: state.selected }));
+  if (!data) return;
+  $("diary").value = data.exists ? data.markdown : "";
+  if (!data.exists) $("diary").placeholder = "这一天还没有日记，点「生成所选日期」后即可编辑。";
+}
+
+// ── 备忘录（每日备忘录 + 章节标题）─────────────────────────────
+
+async function loadMemo() {
+  if (!state.selected) return;
+  const data = await guard("读取备忘录", () => callEntry("memo_state", { date: state.selected }));
+  if (!data) return;
+  $("memo").value = data.memo || "";
+  $("memo-title").value = data.title || "";
+  state.memoTidiedAt = data.tidied_at || "";
+  $("memo-tidy-hint").textContent = state.memoTidiedAt
+    ? "上次整理：" + state.memoTidiedAt + "；"
+    : "";
+}
+
+async function saveMemo() {
+  if (!state.selected) return;
+  const text = $("memo").value;
+  const data = await guard("保存备忘录", () => callEntry("save_memo", { date: state.selected, text: text }));
+  if (data) say("备忘录已保存");
+  await loadMemo();
+}
+
+// 用配置的模型整理当天备忘录：去重 + 理顺语句，结果直接写回
+async function tidyMemo() {
+  if (!state.selected) return;
+  if (state.memoTidiedAt) {
+    const again = await confirmDialog(
+      "再次整理备忘录？",
+      "这一天（" + state.selected + "）的备忘录已经在 " + state.memoTidiedAt +
+        " 整理过，再次整理会用模型结果覆盖现在的内容。",
+      "再次整理"
+    );
+    if (!again) return;
+  }
+  const button = $("btn-tidy-memo");
+  button.disabled = true;
+  const label = button.textContent;
+  button.textContent = "整理中…";
+  try {
+    const data = await guard("整理备忘录", () =>
+      callEntry("tidy_memo", { date: state.selected, text: $("memo").value })
+    );
+    if (!data) return;
+    $("memo").value = data.text || "";
+    const retried = (data.attempts || 0) > 1 ? "（第 " + data.attempts + " 次尝试成功）" : "";
+    say("备忘录已整理：" + data.before_chars + " → " + data.after_chars + " 字" + retried);
+    await loadMemo();
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
+
+async function saveMemoTitle() {
+  if (!state.selected) return;
+  const text = $("memo-title").value;
+  const data = await guard("保存标题", () => callEntry("save_title", { date: state.selected, text: text }));
+  if (data) say("章节标题已保存");
+}
+
+async function saveDiary() {
+  if (!state.selected) return;
+  const text = $("diary").value;
+  const data = await guard("保存日记", () => callEntry("save_diary", { date: state.selected, text: text }));
+  if (data) say("日记已保存");
+  await loadDiary();
+}
+
+async function loadLlmStatus() {
+  const data = await guard("读取模型状态", () => callEntry("status", {}));
+  if (!data) return;
+  // 复制短语配置（任务2：日期/序号前后的词都可自定义）
+  if (data.copy_phrase) {
+    state.copy = {
+      prefix: data.copy_phrase.prefix || "把",
+      mid: data.copy_phrase.mid || "的第",
+      index_unit: data.copy_phrase.index_unit || "条",
+      suffix: data.copy_phrase.suffix || "念给我听",
+    };
+  }
+  // 关闭放映厅时连入口也藏起来：页面首屏不出现任何放映相关控件。
+  const screeningTab = document.querySelector('.tab[data-tab="screening"]');
+  if (screeningTab) {
+    const enabled = data.screening_enabled !== false;
+    screeningTab.hidden = !enabled;
+    if (!enabled && state.tab === "screening") openTab("chat");
+  }
+}
+
+// ── 章节图片 / 相册合集 ────────────────────────────────────────
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("读取图片失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+// 打开文件选择框：上传目标日期由 state.imageTarget 决定
+function triggerImageUpload(day) {
+  state.imageTarget = day || state.selected || "";
+  if (!state.imageTarget) { say("先选一个日期再上传图片", true); return; }
+  const input = $("image-file");
+  input.value = "";
+  input.click();
+}
+
+async function uploadImages(files) {
+  const day = state.imageTarget || state.selected;
+  if (!day || !files.length) return;
+  say("正在上传 " + files.length + " 张图片…");
+  let ok = 0;
+  for (const file of files) {
+    if (!file.type || !file.type.startsWith("image/")) continue;
+    if (file.size > 25 * 1024 * 1024) { say(file.name + " 超过 25 MB，已跳过", true); continue; }
+    try {
+      const data = await readFileAsDataUrl(file);
+      await callEntry("upload_image", { date: day, filename: file.name, data: data });
+      ok += 1;
+    } catch (error) {
+      say("上传 " + file.name + " 失败：" + error.message, true);
+    }
+  }
+  say(ok ? "已上传 " + ok + " 张到 " + day : "");
+  await loadDays();
+  if (state.selected === day) await loadChapterImages();
+  if (!$("chapter-images-overlay").hidden && state.chapterImageDay === day) {
+    await loadChapterImagesModal(day);
+  }
+  if (!$("gallery-overlay").hidden) await loadGallery();
+}
+
+async function loadChapterImages() {
+  if (!state.selected) return;
+  const data = await guard("读取本章图片", () => callEntry("list_images", { date: state.selected, limit: 1000 }));
+  if (!data) return;
+  state.chapterImages = data.items || [];
+  $("chapter-image-count").textContent = state.chapterImages.length;
+  $("chapter-image-hint").textContent = state.chapterImages.length
+    ? "点击查看这一章的 " + state.chapterImages.length + " 张图片，或继续上传"
+    : "点击查看图集并上传图片";
+}
+
+let photoScale = 1;
+let photoOriginalLoaded = false;
+
+function applyPhotoScale() {
+  const img = $("photo-img");
+  img.style.transform = "scale(" + photoScale + ")";
+  $("photo-zoom-info").textContent = photoScale > 1 ? Math.round(photoScale * 100) + "%" : "";
+}
+
+function resetPhotoView() {
+  photoScale = 1;
+  applyPhotoScale();
+  const stage = $("photo-stage");
+  stage.scrollLeft = 0; stage.scrollTop = 0;
+}
+
+async function loadPhotoOriginal(item) {
+  $("btn-photo-original").textContent = "原图加载中…";
+  try {
+    const data = await callEntry("get_image_data", { date: item.date, filename: item.filename });
+    if (state.photoItem !== item) return;
+    if (data && data.data) {
+      $("photo-img").src = data.data;
+      photoOriginalLoaded = true;
+      $("btn-photo-original").textContent = "查看原图";
+    } else {
+      $("btn-photo-original").textContent = "原图加载失败";
+    }
+  } catch (e) {
+    if (state.photoItem === item) $("btn-photo-original").textContent = "原图加载失败";
+  }
+}
+
+function openPhoto(item) {
+  state.photoItem = item;
+  photoOriginalLoaded = false;
+  resetPhotoView();
+  $("photo-title").textContent = item.date + (item.original_name ? " · " + item.original_name : "");
+  $("photo-img").removeAttribute("src");
+  $("btn-photo-original").textContent = "查看原图";
+  $("photo-overlay").hidden = false;
+  // 先按需取缩略图占位，再异步加载原图
+  loadPhotoThumb(item);
+  loadPhotoOriginal(item);
+}
+
+// 滚轮缩放
+$("photo-stage").addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  photoScale = Math.min(5, Math.max(1, photoScale * delta));
+  applyPhotoScale();
+}, { passive: false });
+
+// ── 缩略图懒加载：列表接口只回元信息，图片进入视口才按需取 ──────────
+const thumbObserver = ("IntersectionObserver" in window)
+  ? new IntersectionObserver((entries, observer) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        observer.unobserve(entry.target);
+        loadThumbFor(entry.target);
+      }
+    }, { rootMargin: "240px" })
+  : null;
+
+async function loadThumbFor(img) {
+  if (img.dataset.thumbLoading === "1" || img.dataset.thumbLoaded === "1") return;
+  const date = img.dataset.date;
+  const filename = img.dataset.filename;
+  if (!date || !filename) return;
+  img.dataset.thumbLoading = "1";
+  try {
+    const data = await callEntry("get_image_thumb", { date, filename });
+    if (data && data.data) {
+      img.src = data.data;
+      img.dataset.thumbLoaded = "1";
+    }
+  } catch (error) {
+    // 单张缩略图失败不影响其余图片，也不弹全局错误
+  } finally {
+    img.dataset.thumbLoading = "0";
+  }
+}
+
+async function loadPhotoThumb(item) {
+  try {
+    const data = await callEntry("get_image_thumb", { date: item.date, filename: item.filename });
+    if (state.photoItem !== item) return;
+    if (data && data.data && !photoOriginalLoaded) $("photo-img").src = data.data;
+  } catch (error) { /* 缩略图失败也没关系，原图仍会继续尝试 */ }
+}
+
+// 照片网格：用缩略图排布，点开大图时再由 openPhoto 加载原图
+function renderPhotoGrid(box, items, emptyText) {
+  for (const old of box.querySelectorAll("img")) {
+    if (thumbObserver) thumbObserver.unobserve(old);
+  }
+  box.innerHTML = "";
+  if (!items.length) {
+    box.innerHTML = '<div class="muted">' + emptyText + "</div>";
+    return;
+  }
+  for (const item of items) {
+    const cell = document.createElement("div");
+    cell.className = "photo";
+    const img = document.createElement("img");
+    img.alt = item.date;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.dataset.date = item.date;
+    img.dataset.filename = item.filename;
+    if (item.thumb_url) {
+      img.src = item.thumb_url;  // 兼容旧后端直接内联缩略图
+      img.dataset.thumbLoaded = "1";
+    } else if (thumbObserver) {
+      thumbObserver.observe(img);
+    } else {
+      loadThumbFor(img);
+    }
+    const dateTag = document.createElement("span");
+    dateTag.className = "date-tag";
+    dateTag.textContent = item.date;
+    cell.append(img, dateTag);
+    if (item.memory) {
+      const dot = document.createElement("span");
+      dot.className = "memory-dot";
+      dot.title = "有图片记忆";
+      cell.appendChild(dot);
+    }
+    cell.onclick = () => openPhoto(item);
+    cell.oncontextmenu = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openImageMenu(event, item);
+    };
+    box.appendChild(cell);
+  }
+}
+
+// ── 图片右键菜单：跳到当天 / 图片记忆 / 发送给猫娘 / 删除 ──────────
+function openImageMenu(event, item) {
+  state.menuTarget = item;
+  $("image-menu-note").textContent = item.date + " · " + (item.original_name || item.filename);
+  const menu = $("image-menu");
+  menu.hidden = false;
+  const rect = menu.getBoundingClientRect();
+  menu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - rect.width - 8)) + "px";
+  menu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - rect.height - 8)) + "px";
+}
+
+function closeImageMenu() {
+  $("image-menu").hidden = true;
+}
+
+function jumpToDay(day) {
+  if (!day) return;
+  state.selected = day;
+  for (const id of ["photo-overlay", "gallery-overlay", "chapter-images-overlay"]) {
+    $(id).hidden = true;
+  }
+  renderDays();
+  openTab("chat");
+  loadChat(true);
+}
+
+async function refreshAfterImageChange() {
+  if (!$("photo-overlay").hidden) $("photo-overlay").hidden = true;
+  await loadDays();
+  if (state.selected) await loadChapterImages();
+  if (!$("chapter-images-overlay").hidden && state.chapterImageDay) {
+    await loadChapterImagesModal(state.chapterImageDay);
+  }
+  if (!$("gallery-overlay").hidden) await loadGallery();
+}
+
+async function deleteImage(item) {
+  const ok = await confirmDialog(
+    "删除图片？",
+    "确定删除 " + item.date + " 的这张图片吗？删除后无法恢复。",
+    "删除"
+  );
+  if (!ok) return;
+  const data = await guard("删除图片", () =>
+    callEntry("delete_image", { date: item.date, filename: item.filename })
+  );
+  if (!data) return;
+  say("已删除图片，这一天还剩 " + data.count + " 张");
+  await refreshAfterImageChange();
+}
+
+function openImageMemory(item) {
+  state.menuTarget = item;
+  $("image-memory-title").textContent = "图片记忆 · " + item.date;
+  $("image-memory-sub").textContent = item.original_name || item.filename;
+  $("image-memory-text").value = item.memory || "";
+  $("image-memory-overlay").hidden = false;
+  $("image-memory-text").focus();
+}
+
+async function saveImageMemory() {
+  const item = state.menuTarget;
+  if (!item) return;
+  const text = $("image-memory-text").value.trim();
+  const data = await guard("保存图片记忆", () =>
+    callEntry("save_image_memory", { date: item.date, filename: item.filename, text: text })
+  );
+  if (!data) return;
+  item.memory = data.memory || "";
+  $("image-memory-overlay").hidden = true;
+  say(item.memory ? "图片记忆已保存" : "图片记忆已清除");
+  if (!$("gallery-overlay").hidden) await loadGallery();
+  if (!$("chapter-images-overlay").hidden && state.chapterImageDay) {
+    await loadChapterImagesModal(state.chapterImageDay);
+  }
+}
+
+function openImageSend(item) {
+  state.menuTarget = item;
+  $("image-send-title").textContent = "发送给猫娘 · " + item.date;
+  $("image-send-sub").textContent =
+    (item.original_name || item.filename) + (item.memory ? "（已带入图片记忆）" : "");
+  $("image-send-text").value = item.memory || "";
+  $("image-send-overlay").hidden = false;
+  $("image-send-text").focus();
+}
+
+async function sendImageToCatgirl() {
+  const item = state.menuTarget;
+  if (!item) return;
+  const button = $("btn-image-send");
+  button.disabled = true;
+  try {
+    const text = $("image-send-text").value.trim();
+    const data = await guard("发送给猫娘", () =>
+      callEntry("send_image_to_catgirl", { date: item.date, filename: item.filename, text: text })
+    );
+    if (!data) return;
+    $("image-send-overlay").hidden = true;
+    say(data.image_sent ? "图片已发送给猫娘～" : "文字已发给猫娘（图片没能附上）");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadGallery() {
+  $("gallery-overlay").hidden = false;
+  const box = $("gallery-grid");
+  box.innerHTML = '<div class="muted">正在读取…</div>';
+  const data = await guard("读取相册", () => callEntry("list_images", { limit: 1000 }));
+  if (!data) { box.innerHTML = ""; return; }
+  const items = data.items || [];
+  $("gallery-count").textContent = "共 " + items.length + " 张";
+  renderPhotoGrid(box, items, "还没有照片。到任意章节的图片入口上传吧～");
+}
+
+// 某一章的图片弹窗：既能看这一章的全部照片，也能继续上传
+async function loadChapterImagesModal(day) {
+  state.chapterImageDay = day;
+  $("chapter-images-overlay").hidden = false;
+  $("chapter-images-title").textContent = "📸 " + day + " · 本章图片";
+  const box = $("chapter-images-grid");
+  box.innerHTML = '<div class="muted">正在读取…</div>';
+  const data = await guard("读取本章图片", () => callEntry("list_images", { date: day, limit: 1000 }));
+  if (!data) { box.innerHTML = ""; return; }
+  const items = data.items || [];
+  $("chapter-images-summary").textContent = "共 " + items.length + " 张";
+  if (state.selected === day) {
+    state.chapterImages = items;
+    $("chapter-image-count").textContent = items.length;
+  }
+  renderPhotoGrid(box, items, "这一章还没有照片，点右上角「＋ 上传图片」添加吧～");
+}
+
+function openChapterImages(day) {
+  const target = day || state.selected;
+  if (!target) { say("先选一个日期再看图片", true); return; }
+  loadChapterImagesModal(target);
+}
+
+// ── 放映厅 ────────────────────────────────────────────────────────
+
+function screeningKey(data) {
+  const session = (data && data.session) || {};
+  const marks = session.marks || [];
+  const last = marks.length ? marks[marks.length - 1] : null;
+  const reviews = session.reviews || [];
+  const lastReview = reviews.length ? reviews[reviews.length - 1] : null;
+  return [
+    data && data.date, data && data.total, session.status, session.cursor,
+    session.cat_cursor, session.stop_at, session.driver,
+    marks.length, last && last.id, last && last.at,
+    reviews.length, lastReview && lastReview.id, session.last_pause_reason,
+  ].join("|");
+}
+
+function screeningStatusText(status) {
+  if (status === "playing") return "放映中";
+  if (status === "ended") return "已结束";
+  return "已暂停";
+}
+
+function screeningClock(value) {
+  const ts = Number(value || 0);
+  if (!ts) return "";
+  try {
+    return new Date(ts * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  } catch (error) {
+    return "";
+  }
+}
+
+async function loadScreeningCover(filename) {
+  const screen = state.screening;
+  const img = $("screening-cover-img");
+  if (!img) return;
+  if (!filename) {
+    img.hidden = true;
+    img.removeAttribute("src");
+    screen.coverLoadedFor = "";
+    $("screening-cover").classList.remove("has-image");
+    return;
+  }
+  if (screen.coverLoadedFor === filename && !img.hidden) return;
+  const date = screen.date;
+  const request = ++screen.coverRequest;
+  screen.coverLoadedFor = filename;
+  if (screen.coverCache[filename]) {
+    img.src = screen.coverCache[filename];
+    img.hidden = false;
+    return;
+  }
+  try {
+    const data = await callEntry("get_image_thumb", { date: date, filename: filename });
+    if (request !== screen.coverRequest || screen.date !== date) return;
+    if (data && data.data) {
+      screen.coverCache[filename] = data.data;
+      // 只保留最近 12 张，避免长时间放映内存无限增长
+      const keys = Object.keys(screen.coverCache);
+      while (keys.length > 12) delete screen.coverCache[keys.shift()];
+      img.src = data.data;
+      img.hidden = false;
+      return;
+    }
+  } catch (error) { /* 缩略图失败就保留渐变封面 */ }
+  if (request === screen.coverRequest) {
+    img.hidden = true;
+    $("screening-cover").classList.remove("has-image");
+  }
+}
+
+function renderScreeningCover(data, progress) {
+  const screen = state.screening;
+  const cover = (data && data.cover) || {};
+  const filename = String(cover.filename || "");
+  const sceneNo = Number(cover.scene_no || progress.scene_no || 1);
+  const sceneLabel = String(progress.scene_label || "");
+  $("screening-cover").classList.toggle("has-image", !!filename);
+  $("screening-cover-fallback").textContent = sceneLabel || ("第 " + sceneNo + " 段");
+  $("screening-cover-scene").textContent =
+    "第 " + sceneNo + " 段" + (sceneLabel ? " · " + sceneLabel : "");
+  $("screening-cover-note").textContent = filename
+    ? (cover.manual ? "手动封面" : "自动封面") : "无图片";
+  $("screening-cover-name").textContent = filename || "这一天还没有图片";
+  $("btn-screening-cover-next").disabled = !(cover.candidates || []).length;
+  $("btn-screening-cover-clear").disabled = !cover.manual;
+  loadScreeningCover(filename);
+}
+
+function renderScreeningReview(data, progress) {
+  const box = $("screening-review");
+  const reviews = (data && data.session && data.session.reviews) || [];
+  const review = (data && data.review) || (reviews.length ? reviews[reviews.length - 1] : null);
+  if (!review) {
+    box.innerHTML = '<span class="muted">还没有观后感。</span>';
+  } else {
+    const meta = document.createElement("div");
+    meta.className = "review-meta";
+    meta.textContent =
+      "看到第 " + (review.watched_to || 0) + " / " + (review.total || 0) + " 条 ｜ " +
+      (review.source === "local" ? "本地整理" : "模型") +
+      (review.created_at ? " ｜ " + screeningClock(review.created_at) : "") +
+      (review.warning ? " ｜ " + review.warning : "");
+    const text = document.createElement("div");
+    text.textContent = review.text || "";
+    box.innerHTML = "";
+    box.append(meta, text);
+  }
+  $("btn-screening-review").disabled = !!review || Number(progress.cursor || 0) <= 0;
+  $("btn-screening-review-again").disabled = !review;
+}
+
+async function writeScreeningReview(regenerate) {
+  const screen = state.screening;
+  if (!screen.date || !screen.enabled) return;
+  if (regenerate) {
+    const ok = await confirmDialog(
+      "重新写观后感？",
+      "会再调用一次模型，并追加一条新观后感；旧的那篇仍保留在历史里。",
+      "重新写"
+    );
+    if (!ok) return;
+  }
+  const data = await guard(regenerate ? "重新写观后感…" : "写观后感…", () =>
+    callEntry("screening_reflection", { date: screen.date, regenerate: !!regenerate })
+  );
+  if (!data) return;
+  applyScreeningData(data);
+  renderScreening();
+  if (SCREENING_CHANNEL) SCREENING_CHANNEL.postMessage({ type: "sync", date: screen.date });
+  if (data.review && data.review.warning) {
+    say("观后感已保存（" + data.review.warning + "）");
+  } else {
+    say("观后感已写好～");
+  }
+}
+
+async function cycleScreeningCover(clear) {
+  const screen = state.screening;
+  const data = screen.data || {};
+  const cover = data.cover || {};
+  const files = cover.candidates || [];
+  if (!clear && !files.length) {
+    say("这一天还没有图片，先去「章节图片」上传一张吧", true);
+    return;
+  }
+  let filename = "";
+  if (!clear) {
+    const current = String(cover.filename || "");
+    let index = files.indexOf(current);
+    index = (index + 1) % files.length;
+    filename = files[index];
+  }
+  const result = await guard(clear ? "恢复自动封面" : "换场景封面", () =>
+    callEntry("screening_set_cover", {
+      date: screen.date,
+      scene_no: Number(cover.scene_no || 1),
+      filename: filename,
+    })
+  );
+  if (!result) return;
+  applyScreeningData(result);
+  renderScreening();
+  if (SCREENING_CHANNEL) SCREENING_CHANNEL.postMessage({ type: "sync", date: screen.date });
+}
+
+function applyScreeningData(data) {
+  if (!data) return;
+  const screen = state.screening;
+  screen.data = data;
+  screen.enabled = !!data.enabled;
+  screen.date = data.date || screen.date;
+  screen.session = data.session || null;
+  screen.progress = data.progress || null;
+  screen.scenes = data.scenes || [];
+  if (Array.isArray(data.items) && data.items.length) {
+    screen.rows = data.items;
+    screen.start = Number(data.start || 1);
+  }
+  screen.lastKey = screeningKey(data);
+  screen.loaded = true;
+}
+
+function stopScreeningAuto() {
+  if (state.screening.autoTimer) {
+    clearInterval(state.screening.autoTimer);
+    state.screening.autoTimer = null;
+  }
+}
+
+function stopScreeningPoll() {
+  if (state.screening.pollTimer) {
+    clearInterval(state.screening.pollTimer);
+    state.screening.pollTimer = null;
+  }
+}
+
+function stopScreeningTimers() {
+  stopScreeningAuto();
+  stopScreeningPoll();
+}
+
+function armScreening() {
+  stopScreeningTimers();
+  const screen = state.screening;
+  if (state.tab !== "screening" || !screen.loaded || !screen.enabled || document.hidden) return;
+  const session = screen.session;
+  if (!session) return;
+  const interval = Math.max(1, Number(screen.data && screen.data.auto_interval || 2.5));
+  // 状态是 playing 且 driver 为空（例如猫娘自己调了 resume）时，本窗口接手；
+  // driver 是别的窗口时只做镜像，不抢进度。
+  if (session.status === "playing" && (!session.driver || session.driver === SCREENING_DRIVER)) {
+    screen.autoTimer = setInterval(screeningAutoTick, interval * 1000);
+  }
+  screen.pollTimer = setInterval(pollScreening, 3000);
+}
+
+function renderScreening() {
+  const screen = state.screening;
+  if (!screen.loaded) return;
+  if (!screen.enabled) {
+    const tab = document.querySelector('.tab[data-tab="screening"]');
+    if (tab) tab.hidden = true;
+    if (state.tab === "screening") openTab("chat");
+    return;
+  }
+  const data = screen.data || {};
+  const session = screen.session || {};
+  const progress = screen.progress || {};
+  const total = Number(data.total || 0);
+  const status = String(session.status || "paused");
+  const cursor = Number(progress.cursor || session.cursor || 0);
+  const catCursor = Number(progress.cat_cursor || session.cat_cursor || 0);
+  const stopAt = Number(progress.stop_at || session.stop_at || 0);
+  const percent = Number(progress.percent || 0);
+
+  $("screening-meta").textContent =
+    (screen.date || state.selected) + " ｜ 共 " + total + " 条" +
+    (progress.scene_label ? " ｜ " + progress.scene_label : "");
+  $("screening-scene").textContent = total
+    ? (progress.scene_label ? "银幕 · " + progress.scene_label : "银幕 · 第 " + (cursor || 1) + " 条")
+    : "银幕 · 这一天没有记录";
+  const badge = $("screening-status");
+  badge.textContent = screeningStatusText(status);
+  badge.className = "screen-badge " + status;
+  $("screening-bar").style.width = (total ? Math.min(100, percent) : 0) + "%";
+  $("screening-cursor").textContent = "第 " + cursor + " 条";
+  $("screening-cat-cursor").textContent = "第 " + catCursor + " 条";
+  $("screening-stop-at").textContent = stopAt ? "第 " + stopAt + " 条" : total ? "当天结尾" : "-";
+  $("screening-total").textContent = total + " 条";
+  renderScreeningCover(data, progress);
+  renderScreeningReview(data, progress);
+
+  const reasons = {
+    catgirl_spoke: "🐱 她刚刚开口了，放映停在第 " + cursor + " 条。听完她说，再继续吧。",
+    catgirl_comment: "🐱 她写了一句手记，放映停下来了。",
+    planned_stop: "🌙 到这一场约定的停靠点了" + (stopAt ? "（第 " + stopAt + " 条）" : "") + "，下次从这里继续。",
+    invite: "🐱 已经请她来说说这一段了，等她的回应。",
+    review: "✍️ 写观后感时放映会先停住，写好后可以继续。",
+  };
+  const banner = $("screening-banner");
+  let bannerText = reasons[session.last_pause_reason] || "";
+  if (status === "ended" && total) {
+    bannerText = "🎞 本场放映结束。共 " + total + " 条，要不要再看一遍？";
+  }
+  banner.innerHTML = bannerText ? '<div class="screen-banner">' + escapeHtml(bannerText) + "</div>" : "";
+
+  const box = $("screening-lines");
+  box.innerHTML = "";
+  if (!screen.rows.length) {
+    box.innerHTML = '<div class="screen-empty">' + (total
+      ? "这一天还没有打开放映。点「开始放映」吧。"
+      : "这一天没有记录到对话。") + "</div>";
+  } else {
+    for (const row of screen.rows) {
+      const future = row.index > cursor;
+      const line = document.createElement("div");
+      line.className = "screen-row " + (row.role || "") +
+        (future ? " future" : "") +
+        (row.index === cursor && cursor > 0 ? " current" : "") +
+        (catCursor > 0 && row.index === catCursor ? " cat-here" : "");
+      line.dataset.index = row.index;
+      const idx = document.createElement("div");
+      idx.className = "sr-index";
+      idx.textContent = "#" + row.index;
+      const time = document.createElement("div");
+      time.className = "sr-time";
+      time.textContent = row.time || "";
+      const bubble = document.createElement("div");
+      bubble.className = "sr-bubble";
+      const who = document.createElement("span");
+      who.className = "sr-who";
+      who.textContent = row.speaker || (row.role === "user" ? "主人" : "猫娘");
+      bubble.appendChild(who);
+      const text = document.createElement("span");
+      text.textContent = row.text || "";
+      bubble.appendChild(text);
+      line.append(idx, time, bubble);
+      if (future) {
+        line.onclick = () => line.classList.toggle("revealed");
+      }
+      box.appendChild(line);
+    }
+    requestAnimationFrame(() => {
+      const current = box.querySelector('.screen-row.current');
+      if (current) current.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+
+  const marksBox = $("screening-marks");
+  const marks = (session.marks || []).slice(-12).reverse();
+  marksBox.innerHTML = "";
+  if (!marks.length) {
+    marksBox.innerHTML = '<span class="muted">还没有手记。</span>';
+  } else {
+    for (const mark of marks) {
+      const item = document.createElement("div");
+      item.className = "mark-item " + (mark.who || "master");
+      const meta = document.createElement("div");
+      meta.className = "mark-meta";
+      meta.textContent = "#" + (mark.index || 0) + " · " + (screeningClock(mark.at) || "--:--") +
+        " · " + (mark.who === "catgirl" ? "猫娘" : "主人") +
+        (mark.kind === "auto_pause" ? " · 自动暂停" : "");
+      item.appendChild(meta);
+      if (mark.text) {
+        const body = document.createElement("div");
+        body.textContent = mark.text;
+        item.appendChild(body);
+      }
+      marksBox.appendChild(item);
+    }
+  }
+
+  const startBtn = $("btn-screening-start");
+  startBtn.textContent = status === "playing" ? "⏸ 暂停放映"
+    : status === "ended" && total ? "↻ 从头放映"
+    : (status === "paused" && cursor === 0 && total ? "▶ 开始放映" : "▶ 继续放映");
+  $("screening-hint").textContent = total
+    ? "她开口时会自动停下；未看的句子会先蒙住，点一下可以揭开。"
+    : "先选一个有记录的日期。";
+
+  armScreening();
+}
+
+async function loadScreening(reset) {
+  const screen = state.screening;
+  if (!state.selected) {
+    $("screening-meta").textContent = "先在左侧选一个日期";
+    return;
+  }
+  if (reset) {
+    screen.rows = [];
+    screen.data = null;
+    screen.session = null;
+    stopScreeningTimers();
+  }
+  const data = await guard("打开放映厅", () =>
+    callEntry("screening_open", { date: state.selected })
+  );
+  if (!data) return;
+  screen.date = state.selected;
+  applyScreeningData(data);
+  if (!data.enabled) {
+    renderScreening();
+    return;
+  }
+  renderScreening();
+}
+
+async function reloadScreeningWindow(start) {
+  const screen = state.screening;
+  if (!screen.date || !screen.enabled) return;
+  const pageSize = Number(screen.data && screen.data.page_size || 60);
+  const from = start || Math.max(1, Number(screen.session && screen.session.cursor || 0) - pageSize / 2);
+  const data = await callEntry("screening_read", {
+    date: screen.date, start: Math.floor(from), count: pageSize,
+  });
+  if (!data) return;
+  applyScreeningData(data);
+  renderScreening();
+}
+
+async function screeningAutoTick() {
+  const screen = state.screening;
+  if (screen.busy || document.hidden || state.tab !== "screening") return;
+  if (!screen.session || screen.session.status !== "playing") {
+    stopScreeningAuto();
+    return;
+  }
+  if (screen.session.driver && screen.session.driver !== SCREENING_DRIVER) {
+    stopScreeningAuto();
+    return;
+  }
+  screen.busy = true;
+  try {
+    const data = await callEntry("screening_control", {
+      date: screen.date, action: "advance", count: 1, mode: "line",
+      auto: true, driver: SCREENING_DRIVER, who: "master",
+    });
+    if (!data) return;
+    applyScreeningData(data);
+    renderScreening();
+    if (data.ignored || (data.session && data.session.status !== "playing")) {
+      stopScreeningAuto();
+    }
+  } catch (error) {
+    say("放映自动推进失败：" + error.message, true);
+    stopScreeningAuto();
+  } finally {
+    screen.busy = false;
+  }
+}
+
+async function pollScreening() {
+  const screen = state.screening;
+  if (document.hidden || state.tab !== "screening" || !screen.loaded || !screen.enabled) return;
+  try {
+    const stateData = await callEntry("screening_state", { date: screen.date });
+    if (!stateData || !stateData.enabled) return;
+    if (screeningKey(stateData) !== screen.lastKey) {
+      const pageSize = Number(stateData.page_size || 60);
+      const cursor = Number(stateData.session && stateData.session.cursor || 0);
+      const data = await callEntry("screening_read", {
+        date: screen.date, start: Math.max(1, cursor - pageSize / 2), count: pageSize,
+      });
+      if (data) {
+        applyScreeningData(data);
+        renderScreening();
+      }
+    }
+  } catch (error) {
+    // 轮询失败保持安静，下一次再试；不打断正在看的画面。
+  }
+}
+
+async function screeningControl(action, extra) {
+  const screen = state.screening;
+  if (!screen.date || !screen.enabled) return null;
+  const data = await guard("放映操作", () =>
+    callEntry("screening_control", Object.assign({
+      date: screen.date, action: action, driver: SCREENING_DRIVER, who: "master",
+    }, extra || {}))
+  );
+  if (!data) return null;
+  applyScreeningData(data);
+  renderScreening();
+  if (SCREENING_CHANNEL) SCREENING_CHANNEL.postMessage({ type: "sync", date: screen.date });
+  return data;
+}
+
+function openScreeningMini() {
+  if (!state.selected) { say("先选一个日期", true); return; }
+  let bounds = null;
+  try { bounds = JSON.parse(localStorage.getItem("nekoScreeningBounds") || "null"); } catch (error) { bounds = null; }
+  const width = Math.max(320, Number(bounds && bounds.width || 380));
+  const height = Math.max(420, Number(bounds && bounds.height || 560));
+  const left = bounds && bounds.left != null ? Number(bounds.left) : Math.max(0, Math.round(window.screenX + window.outerWidth - width - 48));
+  const top = bounds && bounds.top != null ? Number(bounds.top) : Math.max(0, Math.round(window.screenY + 80));
+  const features = "width=" + width + ",height=" + height + ",left=" + left + ",top=" + top;
+  const url = "screening_mini.html?date=" + encodeURIComponent(state.selected);
+  const win = window.open(url, "neko-screening", features);
+  if (!win) {
+    say("桌面小窗被拦截了，请允许本页弹出窗口。", true);
+    return;
+  }
+  try { win.focus(); } catch (error) { /* ignore */ }
+}
+
+function openTab(tab) {
+  state.tab = tab;
+  for (const element of document.querySelectorAll(".tab")) {
+    element.classList.toggle("active", element.dataset.tab === tab);
+  }
+  $("view-chat").hidden = tab !== "chat";
+  $("view-screening").hidden = tab !== "screening";
+  $("view-chapter").hidden = tab !== "chapter";
+  $("view-diary").hidden = tab !== "diary";
+  $("view-diaries").hidden = tab !== "diaries";
+  $("view-search").hidden = tab !== "search";
+  $("view-memo").hidden = tab !== "memo";
+  $("view-memories").hidden = tab !== "memories";
+  $("view-capsule").hidden = tab !== "capsule";
+  if (tab === "screening") loadScreening(true);
+  if (tab !== "screening") stopScreeningTimers();
+  if (tab === "chapter") { loadChapter(); loadChapterImages(); }
+  if (tab === "diary") loadDiary();
+  if (tab === "diaries") loadDiaries();
+  if (tab === "memo") loadMemo();
+  if (tab === "memories") loadMemoriesView();
+  if (tab === "capsule") loadCapsules();
+  if (tab === "chat" && !state.rows.length) loadChat(true);
+}
+
+async function doSearch() {
+  const query = $("search").value.trim();
+  if (!query) return;
+  const data = await guard("搜索「" + query + "」", () =>
+    // days: 0 = 用插件配置的检索窗口（默认扫全部已有记录）；写死 14 天会让旧事一件也搜不到
+    callEntry("search_chat", { query: query, limit: 50, days: 0 })
+  );
+  if (!data) return;
+  openTab("search");
+  const list = $("results");
+  list.innerHTML = "";
+  if (!data.count) {
+    list.innerHTML = '<li class="muted">没有找到「' + escapeHtml(query) + "」。</li>";
+    return;
+  }
+  for (const hit of data.results) {
+    const item = document.createElement("li");
+    item.innerHTML =
+      '<span class="tag">#' + hit.index + "</span>" +
+      escapeHtml(hit.date) + " " + escapeHtml(hit.time) + " " +
+      "<strong>" + escapeHtml(hit.speaker) + "</strong>：" +
+      escapeHtml(hit.snippet);
+    item.onclick = () => {
+      state.selected = hit.date;
+      renderDays();
+      openTab("chat");
+      state.rows = [];
+      loadChat(true).then(() => {
+        const row = document.querySelectorAll("#rows tr")[hit.index - 1];
+        if (row) { row.classList.add("hit"); row.scrollIntoView({ block: "center" }); }
+      });
+    };
+    list.appendChild(item);
+  }
+}
+
+async function refreshAfter(build) {
+  await loadDays();
+  if (state.tab === "chat") await loadChat(true);
+  if (build && state.tab === "chapter") await loadChapter();
+  if (build && state.tab === "diary") await loadDiary();
+  if (build && state.tab === "diaries") await loadDiaries();
+  if (build && state.tab === "screening") await loadScreening(true);
+}
+
+// ── 猫娘日记（条目化：每天可有多条，可检索/统计/编辑/删除）────────
+const CAT_MOODS = [
+  ["excited", "兴奋", "🤩"], ["happy", "开心", "😊"], ["calm", "平静", "😌"],
+  ["tired", "疲惫", "😴"], ["anxious", "焦虑", "😰"], ["sad", "难过", "😢"],
+  ["angry", "生气", "😠"], ["neutral", "一般", "😐"],
+];
+
+function catMood(key) {
+  return CAT_MOODS.find((item) => item[0] === key) || CAT_MOODS[CAT_MOODS.length - 1];
+}
+
+function renderCatEntry(day, entry) {
+  const mood = catMood(entry.mood);
+  const card = document.createElement("section");
+  card.className = "diary-item";
+
+  const head = document.createElement("div");
+  head.className = "diary-head";
+  head.innerHTML =
+    '<span class="badge cat">🐱 猫娘日记</span>' +
+    '<span class="date">' + escapeHtml(day) + "</span>" +
+    '<span class="muted">' + escapeHtml(entry.time || "") + "</span>" +
+    '<span class="muted">' + mood[2] + " " + escapeHtml(entry.mood_label || mood[1]) + "</span>" +
+    '<span class="cat-entry-tags">' +
+    (entry.tags || []).map((tag) => '<span class="badge">' + escapeHtml(tag) + "</span>").join("") +
+    "</span>" +
+    (entry.visibility === "private" ? '<span class="badge">🔒 私密</span>' : "");
+
+  const body = document.createElement("div");
+  body.className = "diary-body";
+  body.innerHTML = '<pre class="md">' + renderMarkdown(entry.text || "") + "</pre>";
+
+  const actions = document.createElement("div");
+  actions.className = "diary-actions";
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ 编辑";
+  const delBtn = document.createElement("button");
+  delBtn.textContent = "🗑 删除";
+  editBtn.onclick = () => editCatEntry(card, day, entry);
+  delBtn.onclick = async () => {
+    const ok = await confirmDialog("删除这条日记", "确定要删除 " + day + " 的这一条吗？", "删除");
+    if (!ok) return;
+    const result = await guard("删除日记", () =>
+      callEntry("cat_delete_diary_entry", { date: day, entry_id: entry.id })
+    );
+    if (result) { say("已删除"); loadDiaries(); }
+  };
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+
+  card.appendChild(head);
+  card.appendChild(body);
+  card.appendChild(actions);
+  return card;
+}
+
+function editCatEntry(card, day, entry) {
+  const body = card.querySelector(".diary-body");
+  body.innerHTML =
+    '<textarea class="entry-edit" rows="5">' + escapeHtml(entry.text || "") + "</textarea>" +
+    '<div class="entry-meta-edit">' +
+    "心情 <select class=\"entry-mood\">" +
+    CAT_MOODS.map(
+      (item) =>
+        '<option value="' + item[0] + '"' + (item[0] === entry.mood ? " selected" : "") + ">" +
+        item[2] + " " + item[1] + "</option>"
+    ).join("") +
+    "</select>" +
+    "可见性 <select class=\"entry-vis\">" +
+    '<option value="public"' + (entry.visibility === "public" ? " selected" : "") + ">公开</option>" +
+    '<option value="private"' + (entry.visibility === "private" ? " selected" : "") + ">🔒 仅自己可见</option>" +
+    "</select></div>";
+
+  const actions = card.querySelector(".diary-actions");
+  actions.innerHTML = "";
+  const save = document.createElement("button");
+  save.className = "primary";
+  save.textContent = "保存";
+  const cancel = document.createElement("button");
+  cancel.textContent = "取消";
+  cancel.onclick = () => loadDiaries();
+  save.onclick = async () => {
+    const text = card.querySelector(".entry-edit").value.trim();
+    if (!text) { say("日记正文不能为空", true); return; }
+    const result = await guard("保存日记", () =>
+      callEntry("cat_update_diary_entry", {
+        date: day,
+        entry_id: entry.id,
+        text: text,
+        mood: card.querySelector(".entry-mood").value,
+        visibility: card.querySelector(".entry-vis").value,
+      })
+    );
+    if (result) { say("已保存"); loadDiaries(); }
+  };
+  actions.appendChild(save);
+  actions.appendChild(cancel);
+}
+
+async function loadDiaries() {
+  $("diary-extra").innerHTML = "";
+  const data = await guard("读取猫娘日记", () => callEntry("list_cat_diaries", { limit: 200 }));
+  if (!data) return;
+  const items = data.items || [];
+  const hidden = data.hidden_private || 0;
+  $("diaries-meta").textContent =
+    "共 " + (data.count || items.length) + " 篇" + (data.truncated ? "（仅显示最近 200 篇）" : "") +
+    (hidden ? " · 另有 " + hidden + " 天的私密日记已隐藏（可在「插件配置」里开启读取）" : "");
+  const box = $("diaries");
+  box.innerHTML = "";
+  if (!items.length) {
+    box.innerHTML = hidden
+      ? '<div class="muted">猫娘的私密日记被隐藏了，可在「🛠️ 插件配置」里把「私密日记是否可读」打开。</div>'
+      : '<div class="muted">猫娘还没写过日记呢～</div>';
+    return;
+  }
+  for (const item of items) {
+    for (const entry of item.entries || []) {
+      box.appendChild(renderCatEntry(item.date, entry));
+    }
+  }
+  box.scrollTop = 0;
+}
+
+async function searchDiaries() {
+  const query = $("diary-search").value.trim();
+  if (!query) return;
+  const data = await guard("检索猫娘日记", () =>
+    callEntry("cat_search_diary", { keyword: query, limit: 100 })
+  );
+  if (!data) return;
+  $("diary-extra").innerHTML = "";
+  const box = $("diaries");
+  box.innerHTML = "";
+  $("diaries-meta").textContent =
+    "检索「" + query + "」：命中 " + (data.count || 0) + " 条" +
+    (data.hidden_private ? " · 另有 " + data.hidden_private + " 条私密命中已隐藏" : "");
+  if (!data.count) {
+    box.innerHTML = '<div class="muted">没有找到「' + escapeHtml(query) + "」。</div>";
+    return;
+  }
+  for (const hit of data.results) {
+    const card = renderCatEntry(hit.date, hit);
+    if (hit.snippet && hit.snippet.indexOf(hit.text || "") < 0) {
+      const hint = document.createElement("div");
+      hint.className = "hint";
+      hint.textContent = "… " + hit.snippet;
+      card.appendChild(hint);
+    }
+    box.appendChild(card);
+  }
+  box.scrollTop = 0;
+}
+
+async function showDiaryStats() {
+  const data = await guard("读取心情统计", () => callEntry("cat_diary_stats", { days: 30 }));
+  if (!data) return;
+  const parts = [
+    "<strong>最近 " + data.days + " 天</strong>：" + (data.entries || 0) + " 条 · " +
+      (data.diary_days || 0) + " 天有记录 · " + (data.chars || 0) + " 字",
+  ];
+  if ((data.moods || []).length) {
+    parts.push((data.moods || []).map(
+      (mood) => mood.emoji + " " + escapeHtml(mood.label) + " ×" + mood.count
+    ).join(" ｜ "));
+  }
+  if ((data.tags || []).length) {
+    parts.push("常用标签：" + data.tags.map(
+      (tag) => escapeHtml(tag.tag) + "×" + tag.count
+    ).join("、"));
+  }
+  $("diary-extra").innerHTML = parts.join("<br />");
+}
+
+async function showDiaryThrowback() {
+  const data = await guard("读取往年今日", () => callEntry("cat_diary_throwback", { years: 0 }));
+  if (!data) return;
+  if (!data.count) {
+    $("diary-extra").innerHTML = '<span class="muted">往年今日还没有写过日记呢～</span>';
+    return;
+  }
+  $("diary-extra").innerHTML = data.items.map(
+    (item) =>
+      "<strong>🕰️ " + escapeHtml(item.date) + "（" + item.years_ago + " 年前）</strong><br />" +
+      (item.entries || []).map(
+        (entry) => "· " + (entry.mood_emoji || "") + " " + escapeHtml(entry.text || "")
+      ).join("<br />")
+  ).join("<br /><br />");
+}
+
+$("btn-screening-start").onclick = async () => {
+  const session = state.screening.session;
+  if (!session) return;
+  if (session.status === "playing") {
+    await screeningControl("pause", { stop_at: Number(session.cursor || 0), note: "" });
+  } else if (session.status === "ended") {
+    await screeningControl("restart");
+  } else {
+    await screeningControl("resume");
+  }
+};
+$("btn-screening-next-scene").onclick = () => screeningControl("advance", { mode: "scene", count: 1 });
+$("btn-screening-next-line").onclick = () => screeningControl("advance", { mode: "line", count: 1 });
+$("btn-screening-prev").onclick = () => screeningControl("previous");
+$("btn-screening-pause").onclick = () => {
+  const note = $("screening-note").value.trim();
+  const cursor = Number(state.screening.session && state.screening.session.cursor || 0);
+  screeningControl("pause", { stop_at: cursor, note: note });
+};
+$("btn-screening-invite").onclick = async () => {
+  const screen = state.screening;
+  if (!screen.date || !screen.enabled) return;
+  const data = await guard("请她来说说", () => callEntry("screening_invite", { date: screen.date }));
+  if (!data) return;
+  applyScreeningData(data);
+  renderScreening();
+  if (SCREENING_CHANNEL) SCREENING_CHANNEL.postMessage({ type: "sync", date: screen.date });
+  say("已经把这一段递给她了，等她在聊天里回应～");
+};
+$("btn-screening-mini").onclick = openScreeningMini;
+$("btn-screening-review").onclick = () => writeScreeningReview(false);
+$("btn-screening-review-again").onclick = () => writeScreeningReview(true);
+$("btn-screening-cover-next").onclick = () => cycleScreeningCover(false);
+$("btn-screening-cover-clear").onclick = () => cycleScreeningCover(true);
+$("btn-screening-jump").onclick = async () => {
+  const index = Number($("screening-jump").value || 0);
+  if (!index) { say("先填一个序号", true); return; }
+  await screeningControl("seek", { to: index });
+};
+$("btn-screening-save-note").onclick = async () => {
+  const text = $("screening-note").value.trim();
+  if (!text) { say("先写一句手记", true); return; }
+  const screen = state.screening;
+  if (!screen.date || !screen.enabled) return;
+  const data = await guard("写放映手记", () =>
+    callEntry("screening_comment", { date: screen.date, text: text, who: "master" })
+  );
+  if (!data) return;
+  $("screening-note").value = "";
+  applyScreeningData(data);
+  renderScreening();
+  if (SCREENING_CHANNEL) SCREENING_CHANNEL.postMessage({ type: "sync", date: screen.date });
+};
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopScreeningTimers();
+  } else if (state.tab === "screening") {
+    armScreening();
+    pollScreening();
+  }
+});
+
+if (SCREENING_CHANNEL) {
+  SCREENING_CHANNEL.onmessage = (event) => {
+    if (!event.data || event.data.type !== "sync") return;
+    if (state.tab === "screening") pollScreening();
+  };
+}
+
+$("btn-harvest").onclick = async () => { await guard("补录", () => callEntry("harvest_now", {})); await refreshAfter(false); await loadMemories(); };
+$("btn-today").onclick = async () => { await guard("生成今天的章节", () => callEntry("build_today", { with_diary: false })); await loadDays(); openTab(state.tab); };
+$("btn-diary").onclick = async () => {
+  if (!state.selected) return;
+  const data = await guard("立即生成日记", () => callEntry("generate_diary", { date: state.selected }));
+  if (data && data.diary) {
+    const skipped = data.diary.skipped;
+    const reason = data.diary.reason || data.diary.detail || "";
+    if (skipped === "no_model" || reason) {
+      say("日记未生成：" + (reason || "模型不可用，请先检查模型配置"), true);
+    } else if ((data.diary.chars || 0) > 0) {
+      say("日记已生成（" + data.diary.chars + " 字）");
+    }
+  }
+  await loadDays();
+  if (state.tab === "diary") loadDiary();
+  if (state.tab === "diaries") loadDiaries();
+};
+$("btn-day").onclick = async () => {
+  if (!state.selected) return;
+  await guard("生成 " + state.selected, () => callEntry("build_day", { date: state.selected, force: true, with_llm: true, with_diary: false }));
+  await refreshAfter(true);
+};
+$("btn-more").onclick = () => loadChat(false);
+$("btn-save-diary").onclick = saveDiary;
+$("btn-save-title").onclick = saveMemoTitle;
+$("btn-save-memo").onclick = saveMemo;
+$("btn-tidy-memo").onclick = tidyMemo;
+$("btn-fetch-memo").onclick = async () => {
+  const data = await guard("抓取备忘录", () => callEntry("fetch_memo_now", {}));
+  if (data) say("已抓取（新增 " + (data.added || 0) + " 段）");
+  await loadMemo();
+};
+$("btn-search").onclick = doSearch;
+$("btn-reload-diaries").onclick = () => loadDiaries();
+$("btn-diary-search").onclick = searchDiaries;
+$("diary-search").addEventListener("keydown", (event) => { if (event.key === "Enter") searchDiaries(); });
+$("btn-diary-stats").onclick = showDiaryStats;
+$("btn-diary-throwback").onclick = showDiaryThrowback;
+$("search").addEventListener("keydown", (event) => { if (event.key === "Enter") doSearch(); });
+for (const element of document.querySelectorAll(".tab")) {
+  element.onclick = () => openTab(element.dataset.tab);
+}
+
+// 章节图片入口 + 相册合集
+$("btn-chapter-images").onclick = () => openChapterImages(state.selected);
+$("btn-chapter-images-upload").onclick = () => {
+  triggerImageUpload(state.chapterImageDay || state.selected);
+};
+$("btn-chapter-images-close").onclick = () => { $("chapter-images-overlay").hidden = true; };
+$("chapter-images-overlay").onclick = (event) => {
+  if (event.target === $("chapter-images-overlay")) $("chapter-images-overlay").hidden = true;
+};
+$("btn-gallery").onclick = loadGallery;
+$("btn-gallery-close").onclick = () => { $("gallery-overlay").hidden = true; };
+$("btn-gallery-upload").onclick = () => {
+  const fallback = state.selected || (state.days[0] ? state.days[0].date : "");
+  if (!fallback) { say("还没有任何日期，先点「立即补录」", true); return; }
+  triggerImageUpload(fallback);
+};
+$("image-file").onchange = () => {
+  uploadImages(Array.from($("image-file").files || []));
+};
+$("btn-photo-close").onclick = () => { $("photo-overlay").hidden = true; };
+$("btn-photo-original").onclick = () => {
+  if (state.photoItem) loadPhotoOriginal(state.photoItem);
+};
+$("photo-overlay").onclick = (event) => {
+  if (event.target === $("photo-overlay")) $("photo-overlay").hidden = true;
+};
+$("gallery-overlay").onclick = (event) => {
+  if (event.target === $("gallery-overlay")) $("gallery-overlay").hidden = true;
+};
+
+// 图片右键菜单：跳转到当天 / 图片记忆 / 发送给猫娘 / 删除
+$("menu-jump").onclick = () => {
+  const item = state.menuTarget;
+  closeImageMenu();
+  if (item) jumpToDay(item.date);
+};
+$("menu-memory").onclick = () => {
+  const item = state.menuTarget;
+  closeImageMenu();
+  if (item) openImageMemory(item);
+};
+$("menu-send").onclick = () => {
+  const item = state.menuTarget;
+  closeImageMenu();
+  if (item) openImageSend(item);
+};
+$("menu-delete").onclick = () => {
+  const item = state.menuTarget;
+  closeImageMenu();
+  if (item) deleteImage(item);
+};
+document.addEventListener("click", closeImageMenu);
+document.addEventListener("scroll", closeImageMenu, true);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeImageMenu();
+});
+$("photo-img").oncontextmenu = (event) => {
+  event.preventDefault();
+  if (state.photoItem) openImageMenu(event, state.photoItem);
+};
+$("btn-image-memory-cancel").onclick = () => { $("image-memory-overlay").hidden = true; };
+$("btn-image-memory-save").onclick = saveImageMemory;
+$("image-memory-overlay").onclick = (event) => {
+  if (event.target === $("image-memory-overlay")) $("image-memory-overlay").hidden = true;
+};
+$("btn-image-send-cancel").onclick = () => { $("image-send-overlay").hidden = true; };
+$("btn-image-send").onclick = sendImageToCatgirl;
+$("image-send-overlay").onclick = (event) => {
+  if (event.target === $("image-send-overlay")) $("image-send-overlay").hidden = true;
+};
+
+// ── 模型配置弹窗 ──────────────────────────────────────────────
+function addModelRow(entry, isActive) {
+  entry = entry || {};
+  const row = document.createElement("div");
+  row.className = "model-row" + (isActive ? " is-active" : "");
+  row.innerHTML =
+    '<div class="model-row-head">' +
+    '<button class="model-pick" title="设为当前模型"></button>' +
+    '<input class="model-id" placeholder="模型 ID，如 deepseek-chat" />' +
+    '<button class="model-toggle" title="展开/收起">▸</button>' +
+    '<button class="model-del" title="删除">🗑</button>' +
+    "</div>" +
+    '<div class="model-detail" hidden>' +
+    '<label>API 密钥</label>' +
+    '<input type="password" class="model-key" placeholder="输入 API 密钥" autocomplete="off" />' +
+    '<div class="custom-head">▾ 自定义设置</div>' +
+    '<div class="row2">' +
+    "<div><label>显示名称</label><input class=\"model-name\" placeholder=\"显示名称\" /></div>" +
+    "<div><label>API 地址</label><input class=\"model-url\" placeholder=\"https://.../v1\" /></div>" +
+    "</div></div>";
+
+  row.querySelector(".model-id").value = entry.id || "";
+  row.querySelector(".model-name").value = entry.name || "";
+  row.querySelector(".model-url").value = entry.base_url || "";
+  row.querySelector(".model-key").placeholder = entry.has_key
+    ? "已配置——输入新值可替换"
+    : "输入 API 密钥";
+
+  row.querySelector(".model-pick").onclick = () => {
+    document.querySelectorAll(".model-row").forEach((r) => r.classList.remove("is-active"));
+    row.classList.add("is-active");
+  };
+  row.querySelector(".model-del").onclick = () => row.remove();
+  row.querySelector(".model-toggle").onclick = () => {
+    const detail = row.querySelector(".model-detail");
+    detail.hidden = !detail.hidden;
+    row.querySelector(".model-toggle").textContent = detail.hidden ? "▸" : "▾";
+  };
+  $("models-list").appendChild(row);
+  return row;
+}
+
+function collectRows() {
+  const rows = [];
+  let active = "";
+  document.querySelectorAll("#models-list .model-row").forEach((row) => {
+    const id = row.querySelector(".model-id").value.trim();
+    if (!id) return;
+    if (row.classList.contains("is-active")) active = id;
+    rows.push({
+      id,
+      name: row.querySelector(".model-name").value.trim() || id,
+      base_url: row.querySelector(".model-url").value.trim(),
+      api_key: row.querySelector(".model-key").value,
+    });
+  });
+  return { rows, active };
+}
+
+async function openModels() {
+  $("models-overlay").hidden = false;
+  $("models-list").innerHTML = "";
+  $("fetch-drop").hidden = true;
+  const data = await guard("读取模型目录", () => callEntry("list_models", {}));
+  if (!data) { $("models-overlay").hidden = true; return; }
+  $("models-base-url").textContent = data.endpoint_base_url
+    ? "当前默认端点：" + data.endpoint_base_url
+    : "未点选时，如果列表里只有一个完整模型会自动使用它；列表为空才走宿主默认端点。";
+  for (const m of data.models || []) {
+    addModelRow(m, m.id === data.active);
+  }
+}
+
+$("btn-models").onclick = openModels;
+$("btn-cancel-models").onclick = () => { $("models-overlay").hidden = true; };
+$("btn-add-model").onclick = () => {
+  const row = addModelRow({}, false);
+  row.querySelector(".model-detail").hidden = false;
+  row.querySelector(".model-toggle").textContent = "▾";
+};
+
+$("btn-save-models").onclick = async () => {
+  const { rows, active } = collectRows();
+  const data = await guard("保存模型目录", () =>
+    callEntry("save_models", { models: rows, active: active || null })
+  );
+  if (data) {
+    $("models-overlay").hidden = true;
+    say("模型目录已保存，当前模型：" + (data.active || "默认"));
+    loadLlmStatus();
+  }
+};
+
+$("btn-restore-models").onclick = async () => {
+  const data = await guard("恢复默认模型", () =>
+    callEntry("save_models", { models: [], active: null })
+  );
+  if (data) {
+    $("models-list").innerHTML = "";
+    $("models-overlay").hidden = true;
+    say("已恢复默认模型");
+    loadLlmStatus();
+  }
+};
+
+$("btn-fetch-models").onclick = async () => {
+  const drop = $("fetch-drop");
+  const activeRow = document.querySelector("#models-list .model-row.is-active")
+    || document.querySelector("#models-list .model-row");
+  if (!activeRow) { say("先添加一行模型再获取"); return; }
+  const url = activeRow.querySelector(".model-url").value.trim();
+  const key = activeRow.querySelector(".model-key").value;
+  const modelId = activeRow.querySelector(".model-id").value.trim();
+  drop.hidden = false;
+  drop.innerHTML = "<div>正在获取…</div>";
+  let args;
+  if (key) {
+    // 填了新密钥：用表单里的地址 + 新密钥
+    args = { base_url: url, api_key: key };
+  } else if (modelId) {
+    // 密钥框留空（已有密钥，占位提示“输入新值可替换”）：
+    // 前端拿不到原密钥，把行 id 传回去，后端用已保存的地址+密钥。
+    args = { id: modelId };
+  } else {
+    drop.innerHTML = "<div>请先填写 API 密钥</div>";
+    return;
+  }
+  const data = await guard("获取可用模型", () => callEntry("fetch_models", args));
+  if (!data) { drop.innerHTML = "<div>获取失败</div>"; return; }
+  const list = data.available || [];
+  if (!list.length) {
+    drop.innerHTML = "<div>" + escapeHtml(data.detail || data.error || "没有可用模型") + "</div>";
+    return;
+  }
+  drop.innerHTML = "";
+  for (const mid of list) {
+    const item = document.createElement("div");
+    item.textContent = mid;
+    item.onclick = () => {
+      activeRow.querySelector(".model-id").value = mid;
+      activeRow.querySelector(".model-name").value =
+        activeRow.querySelector(".model-name").value.trim() || mid;
+      drop.hidden = true;
+    };
+    drop.appendChild(item);
+  }
+};
+
+// ── 插件配置弹窗（字段来自 config.schema.json）────────────────
+// 只影响分组展示顺序；schema 里没列到的字段会自动归到「其他」。
+const CONFIG_GROUPS = [
+  {
+    title: "基本",
+    keys: ["master_name", "catgirl_name", "diary_language", "diary_engine",
+      "diary_style", "diary_word_limit", "scene_gap_minutes"],
+  },
+  {
+    title: "日记与备忘录",
+    keys: ["diary_source", "memo_append_mode", "keyword_top_n", "highlight_top_n"],
+  },
+  {
+    title: "检索",
+    keys: ["search_default_days", "search_default_limit", "search_snippet_limit",
+      "search_include_diary", "search_trigger_words"],
+  },
+  {
+    title: "猫娘日记",
+    keys: ["cat_diary_enabled", "cat_diary_dir", "cat_diary_word_limit",
+      "cat_diary_default_visibility", "cat_diary_default_mood", "cat_diary_private_readable"],
+  },
+  {
+    title: "拾光 · 对话目录",
+    keys: ["catalog_enabled", "catalog_command", "catalog_send_respond", "catalog_search_limit",
+      "catalog_width", "catalog_height", "catalog_ball_size", "catalog_always_on_top",
+      "catalog_max_scan_days", "catalog_idle_close_minutes", "catalog_history_limit",
+      "catalog_restore_last_search", "catalog_quote_footer", "catalog_topic_lead",
+      "catalog_topic_footer"],
+  },
+  {
+    // 模型端点/密钥统一在上方「模型配置」按钮里维护，这里只留生成参数
+    title: "模型参数",
+    keys: ["llm_timeout_seconds", "llm_temperature"],
+  },
+  {
+    title: "采集与存档",
+    keys: ["capture_all_sources", "read_host_memory_store", "memory_store_limit",
+      "memory_store_character", "live_refresh_seconds", "finalize_enabled",
+      "raw_dir", "chapters_dir", "diary_dir"],
+  },
+  { title: "隐私", keys: ["redact"] },
+];
+
+let configFieldMap = {};
+
+function addConfigField(box, field, values, hasKey) {
+  const key = field.key;
+  const value = values[key];
+  const wrap = document.createElement("div");
+  wrap.className = "config-field";
+  wrap.dataset.key = key;
+  if (field.write_only) wrap.dataset.writeOnly = "1";
+
+  let input;
+  if (field.type === "boolean") {
+    const row = document.createElement("div");
+    row.className = "check";
+    input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(value);
+    const label = document.createElement("label");
+    label.textContent = field.title || key;
+    label.htmlFor = "cfg-" + key;
+    input.id = "cfg-" + key;
+    row.appendChild(input);
+    row.appendChild(label);
+    wrap.appendChild(row);
+  } else {
+    const label = document.createElement("label");
+    label.textContent = field.title || key;
+    label.htmlFor = "cfg-" + key;
+    wrap.appendChild(label);
+    if (Array.isArray(field.enum)) {
+      input = document.createElement("select");
+      for (const option of field.enum) {
+        const opt = document.createElement("option");
+        opt.value = option;
+        opt.textContent = option;
+        input.appendChild(opt);
+      }
+      input.value = value == null ? "" : String(value);
+    } else if (field.type === "integer" || field.type === "number") {
+      input = document.createElement("input");
+      input.type = "number";
+      input.step = field.type === "integer" ? "1" : "any";
+      if (field.minimum != null) input.min = field.minimum;
+      if (field.maximum != null) input.max = field.maximum;
+      input.value = value == null ? "" : String(value);
+    } else if (field.type === "array") {
+      input = document.createElement("textarea");
+      input.value = Array.isArray(value) ? value.join(", ") : String(value || "");
+      input.placeholder = "用逗号分隔，例如：张三,13800000000";
+    } else if (field.write_only) {
+      input = document.createElement("input");
+      input.type = "password";
+      input.autocomplete = "off";
+      input.value = "";
+      input.placeholder = hasKey ? "已配置——输入新值可替换" : "输入密钥";
+    } else {
+      input = document.createElement("input");
+      input.type = "text";
+      input.value = value == null ? "" : String(value);
+    }
+    input.id = "cfg-" + key;
+    wrap.appendChild(input);
+  }
+
+  if (field.description) {
+    const desc = document.createElement("div");
+    desc.className = "desc";
+    desc.textContent = field.description;
+    wrap.appendChild(desc);
+  }
+  box.appendChild(wrap);
+}
+
+function collectConfigValues() {
+  const values = {};
+  document.querySelectorAll("#config-fields .config-field").forEach((wrap) => {
+    const key = wrap.dataset.key;
+    const field = configFieldMap[key];
+    const input = wrap.querySelector("input, select, textarea");
+    if (!field || !input) return;
+    if (field.type === "boolean") {
+      values[key] = input.checked;
+    } else if (field.write_only) {
+      // 留空 = 保持原密钥不变
+      if (input.value.trim()) values[key] = input.value.trim();
+    } else if (field.type === "integer") {
+      const n = parseInt(input.value, 10);
+      if (Number.isFinite(n)) values[key] = n;
+    } else if (field.type === "number") {
+      const n = Number(input.value);
+      if (input.value.trim() !== "" && Number.isFinite(n)) values[key] = n;
+    } else if (field.type === "array") {
+      values[key] = input.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+    } else {
+      values[key] = input.value;
+    }
+  });
+  return values;
+}
+
+async function openConfig() {
+  $("config-overlay").hidden = false;
+  $("config-warn").textContent = "";
+  $("config-fields").innerHTML = '<div class="modal-sub">正在读取配置…</div>';
+  const data = await guard("读取插件配置", () => callEntry("get_config", {}));
+  if (!data) { $("config-overlay").hidden = true; return; }
+  const fields = data.fields || [];
+  if (!fields.length) {
+    $("config-fields").innerHTML =
+      '<div class="modal-sub">没有读到配置定义（config.schema.json），暂时无法在这里编辑。</div>';
+    return;
+  }
+  configFieldMap = {};
+  for (const field of fields) configFieldMap[field.key] = field;
+  const values = data.values || {};
+  const hasKey = Boolean(data.has_llm_api_key);
+
+  $("config-fields").innerHTML = "";
+  const known = new Set();
+  const groups = [];
+  for (const group of CONFIG_GROUPS) {
+    const keys = group.keys.filter((k) => configFieldMap[k]);
+    if (!keys.length) continue;
+    keys.forEach((k) => known.add(k));
+    groups.push({ title: group.title, keys });
+  }
+  const rest = fields.map((f) => f.key).filter((k) => !known.has(k));
+  if (rest.length) groups.push({ title: "其他", keys: rest });
+
+  for (const group of groups) {
+    const box = document.createElement("details");
+    box.className = "config-group";
+    box.open = true;
+    const summary = document.createElement("summary");
+    summary.textContent = group.title;
+    box.appendChild(summary);
+    for (const key of group.keys) addConfigField(box, configFieldMap[key], values, hasKey);
+    $("config-fields").appendChild(box);
+  }
+  if ((data.warnings || []).length) {
+    $("config-warn").textContent = "现有配置有 " + data.warnings.length + " 项非法，已用默认值";
+  }
+}
+
+$("btn-config").onclick = openConfig;
+$("btn-config-close").onclick = () => { $("config-overlay").hidden = true; };
+$("btn-config-cancel").onclick = () => { $("config-overlay").hidden = true; };
+$("config-overlay").onclick = (event) => {
+  if (event.target === $("config-overlay")) $("config-overlay").hidden = true;
+};
+
+$("btn-config-save").onclick = async () => {
+  const values = collectConfigValues();
+  const data = await guard("保存插件配置", () => callEntry("save_config", { values }));
+  if (!data) return;
+  if (!data.saved) {
+    $("config-warn").textContent = "未保存：" + (data.warnings || []).join("；");
+    return;
+  }
+  $("config-overlay").hidden = true;
+  const catalogOn = Boolean(values.catalog_enabled);
+  say("插件配置已保存（" + (data.changed || []).length + " 项），已立即生效" +
+    (catalogOn ? "，拾光窗口正在打开" : ""));
+  loadLlmStatus();
+};
+
+// 顶部右上角的今天日期徽标
+(function setTodayLabel() {
+  const d = new Date();
+  const week = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()];
+  $("today-label").textContent =
+    d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0") + " " + week;
+})();
+
+(async function start() {
+  // 三个请求互不依赖，并行发出，首屏更快
+  await Promise.all([loadDays(), loadMemories(), loadLlmStatus()]);
+  if (state.selected) { openTab("chat"); }
+  else { say("还没有任何记录：先点「立即补录」，或去和猫娘说几句话。"); }
+})();
+</script>
+</body>
+</html>

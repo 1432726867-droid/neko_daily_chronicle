@@ -1,0 +1,721 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "chronicle": {
+      "type": "object",
+      "title": "对话编年史",
+      "properties": {
+        "diary_source": {
+          "type": "string",
+          "enum": [
+            "memor",
+            "transcript",
+            "auto"
+          ],
+          "title": "日记正文来源",
+          "default": "memor",
+          "description": "memor：以备忘录为主、对话为辅（默认）；transcript：只用原始对话；auto：自动。",
+          "x-title-i18n": {
+            "zh-CN": "日记正文来源",
+            "en": "Diary body source"
+          },
+          "x-description-i18n": {
+            "zh-CN": "memor：以备忘录为主、对话为辅（默认）；transcript：只用原始对话；auto：自动。",
+            "en": "memor: prioritize the memo, conversation as backup (default); transcript: raw conversation only; auto: automatic."
+          }
+        },
+        "memo_append_mode": {
+          "type": "string",
+          "enum": [
+            "tail",
+            "line",
+            "append"
+          ],
+          "title": "备忘录抓取策略",
+          "default": "tail",
+          "description": "tail：末段锚点定位（只追新增段，默认）；line：逐行去重；append：整段追加。",
+          "x-title-i18n": {
+            "zh-CN": "备忘录抓取策略",
+            "en": "Memo append mode"
+          },
+          "x-description-i18n": {
+            "zh-CN": "tail：末段锚点定位（只追新增段，默认）；line：逐行去重；append：整段追加。",
+            "en": "tail: anchor-locate the last segment and only append new ones (default); line: per-line dedup; append: append whole segments."
+          }
+        },
+        "search_default_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "title": "检索默认往回查几天",
+          "default": 365,
+          "x-title-i18n": {
+            "zh-CN": "检索默认往回查几天",
+            "en": "Search default look-back days"
+          }
+        },
+        "search_default_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "title": "检索默认最多返回几条",
+          "default": 8,
+          "x-title-i18n": {
+            "zh-CN": "检索默认最多返回几条",
+            "en": "Search default result limit"
+          }
+        },
+        "search_snippet_limit": {
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 2000,
+          "title": "命中片段长度",
+          "default": 120,
+          "x-title-i18n": {
+            "zh-CN": "命中片段长度",
+            "en": "Search snippet length"
+          }
+        },
+        "search_include_diary": {
+          "type": "boolean",
+          "title": "检索是否同时翻章节/日记",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "检索是否同时翻章节/日记",
+            "en": "Search chapters/diaries too"
+          }
+        },
+        "search_trigger_words": {
+          "type": "string",
+          "title": "检索触发语（供模型参考）",
+          "description": "用中文逗号或英文逗号分隔的多个触发短语，例如：我说过,我提过,是不是说过,之前说过。它们只出现在提示词里供模型参考，不影响功能。",
+          "default": "我说过,我提过,是不是说过,之前说过",
+          "x-title-i18n": {
+            "zh-CN": "检索触发语（供模型参考）",
+            "en": "Search trigger words"
+          },
+          "x-description-i18n": {
+            "zh-CN": "用中文逗号或英文逗号分隔的多个触发短语，例如：我说过,我提过,是不是说过,之前说过。它们只出现在提示词里供模型参考，不影响功能。",
+            "en": "Multiple trigger phrases separated by commas, e.g. \"我说过,我提过,是不是说过,之前说过\". They only appear in the prompt as hints for the model and do not affect functionality."
+          }
+        },
+        "cat_diary_enabled": {
+          "type": "boolean",
+          "title": "是否允许猫娘自己写日记",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "是否允许猫娘自己写日记",
+            "en": "Allow catgirl to write her own diary"
+          }
+        },
+        "cat_diary_dir": {
+          "type": "string",
+          "title": "猫娘日记存放目录",
+          "default": "neko_diary",
+          "x-title-i18n": {
+            "zh-CN": "猫娘日记存放目录",
+            "en": "Catgirl diary directory"
+          }
+        },
+        "capsule_dir": {
+          "type": "string",
+          "title": "时间胶囊存放目录",
+          "default": "capsules",
+          "x-title-i18n": {
+            "zh-CN": "时间胶囊存放目录",
+            "en": "Time capsule directory"
+          }
+        },
+        "capsule_notify_enabled": {
+          "type": "boolean",
+          "title": "时间胶囊到期提醒",
+          "description": "到期后每天检查一次，只把提醒递给猫娘，不显示在聊天里。",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "时间胶囊到期提醒",
+            "en": "Time capsule due reminder"
+          }
+        },
+        "capsule_notify_hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23,
+          "title": "到期提醒时刻（0-23）",
+          "default": 9,
+          "x-title-i18n": {
+            "zh-CN": "到期提醒时刻（0-23）",
+            "en": "Reminder hour (0-23)"
+          }
+        },
+        "screening_enabled": {
+          "type": "boolean",
+          "title": "启用放映厅",
+          "description": "关闭后浏览页不显示放映厅入口，也不会读写任何放映状态；没有后台任务。",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "启用放映厅",
+            "en": "Enable screening room"
+          },
+          "x-description-i18n": {
+            "zh-CN": "关闭后浏览页不显示放映厅入口，也不会读写任何放映状态；没有后台任务。",
+            "en": "When disabled, the screening room entry is hidden and no screening state is read or written; it has no background tasks."
+          }
+        },
+        "screening_dir": {
+          "type": "string",
+          "title": "放映厅状态存放目录",
+          "default": "screenings",
+          "x-title-i18n": {
+            "zh-CN": "放映厅状态存放目录",
+            "en": "Screening state directory"
+          }
+        },
+        "screening_page_size": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 200,
+          "title": "放映窗口一次展示条数",
+          "default": 60,
+          "x-title-i18n": {
+            "zh-CN": "放映窗口一次展示条数",
+            "en": "Screening page size"
+          }
+        },
+        "screening_default_mode": {
+          "type": "string",
+          "enum": ["line", "scene"],
+          "title": "默认放映单位",
+          "default": "line",
+          "description": "line：逐句；scene：按时间场景一段段推进。",
+          "x-title-i18n": {
+            "zh-CN": "默认放映单位",
+            "en": "Default screening step"
+          },
+          "x-description-i18n": {
+            "zh-CN": "line：逐句；scene：按时间场景一段段推进。",
+            "en": "line: one line at a time; scene: advance in timed scenes."
+          }
+        },
+        "screening_auto_interval": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10,
+          "title": "自动播放间隔（秒）",
+          "default": 2.5,
+          "x-title-i18n": {
+            "zh-CN": "自动播放间隔（秒）",
+            "en": "Auto-play interval (seconds)"
+          }
+        },
+        "screening_auto_pause_on_catgirl": {
+          "type": "boolean",
+          "title": "猫娘开口时自动暂停",
+          "default": true,
+          "description": "放映中猫娘只要在聊天里说话，银幕就自动停在她说话前的位置。",
+          "x-title-i18n": {
+            "zh-CN": "猫娘开口时自动暂停",
+            "en": "Pause when the catgirl speaks"
+          },
+          "x-description-i18n": {
+            "zh-CN": "放映中猫娘只要在聊天里说话，银幕就自动停在她说话前的位置。",
+            "en": "While screening, if the catgirl says anything in chat, playback pauses at the line before she spoke."
+          }
+        },
+        "catalog_enabled": {
+          "type": "boolean",
+          "title": "启用拾光对话目录",
+          "description": "默认关闭。开启并保存后窗口会立即打开；之后也可在聊天里输入 #拾光 打开。关闭时完全不加载 Tk。",
+          "default": false,
+          "x-title-i18n": {
+            "zh-CN": "启用拾光对话目录",
+            "en": "Enable Shiguang conversation catalog"
+          },
+          "x-description-i18n": {
+            "zh-CN": "默认关闭。开启并保存后窗口会立即打开；之后也可在聊天里输入 #拾光 打开。关闭时完全不加载 Tk。",
+            "en": "Disabled by default. Saving with it enabled opens the window immediately; later you can also open it by typing #拾光 in chat. When disabled, Tk is never loaded."
+          }
+        },
+        "catalog_command": {
+          "type": "string",
+          "title": "拾光启动命令",
+          "default": "#拾光",
+          "description": "聊天消息以这个前缀开头时启动悬浮窗；命令后面的文字会作为搜索词。",
+          "x-title-i18n": {
+            "zh-CN": "拾光启动命令",
+            "en": "Shiguang start command"
+          },
+          "x-description-i18n": {
+            "zh-CN": "聊天消息以这个前缀开头时启动悬浮窗；命令后面的文字会作为搜索词。",
+            "en": "A chat message starting with this prefix opens the floating window; the rest is used as the search query."
+          }
+        },
+        "catalog_send_respond": {
+          "type": "boolean",
+          "title": "默认让猫娘回应",
+          "default": false,
+          "description": "关闭时只把选中对话送入聊天，不触发猫娘立刻回应。",
+          "x-title-i18n": {
+            "zh-CN": "默认让猫娘回应",
+            "en": "Respond by default"
+          },
+          "x-description-i18n": {
+            "zh-CN": "关闭时只把选中对话送入聊天，不触发猫娘立刻回应。",
+            "en": "When off, the selected conversation is only sent into chat without triggering an immediate reply."
+          }
+        },
+        "catalog_search_limit": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 100,
+          "title": "拾光搜索结果上限",
+          "default": 40,
+          "x-title-i18n": {
+            "zh-CN": "拾光搜索结果上限",
+            "en": "Shiguang search result limit"
+          }
+        },
+        "catalog_width": {
+          "type": "integer",
+          "minimum": 340,
+          "maximum": 900,
+          "title": "拾光窗口宽度",
+          "default": 420,
+          "x-title-i18n": {
+            "zh-CN": "拾光窗口宽度",
+            "en": "Shiguang window width"
+          }
+        },
+        "catalog_height": {
+          "type": "integer",
+          "minimum": 420,
+          "maximum": 900,
+          "title": "拾光窗口高度",
+          "default": 560,
+          "x-title-i18n": {
+            "zh-CN": "拾光窗口高度",
+            "en": "Shiguang window height"
+          }
+        },
+        "catalog_ball_size": {
+          "type": "integer",
+          "minimum": 48,
+          "maximum": 96,
+          "title": "拾光小球尺寸",
+          "default": 64,
+          "x-title-i18n": {
+            "zh-CN": "拾光小球尺寸",
+            "en": "Shiguang ball size"
+          }
+        },
+        "catalog_always_on_top": {
+          "type": "boolean",
+          "title": "拾光窗口置顶",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "拾光窗口置顶",
+            "en": "Keep Shiguang on top"
+          }
+        },
+        "catalog_max_scan_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "title": "搜索最多回看天数",
+          "default": 365,
+          "description": "0 = 全部历史。默认限制可避免冷门关键词扫完所有日期。",
+          "x-title-i18n": {
+            "zh-CN": "搜索最多回看天数",
+            "en": "Maximum days to scan"
+          },
+          "x-description-i18n": {
+            "zh-CN": "0 = 全部历史。默认限制可避免冷门关键词扫完所有日期。",
+            "en": "0 = all history. A limit avoids scanning every day for rare keywords."
+          }
+        },
+        "catalog_idle_close_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 240,
+          "title": "拾光空闲自动收起（分钟）",
+          "default": 10,
+          "description": "无操作先缩球，再闲置同样时间后关闭并释放 Tk 线程；0 = 不自动收起。",
+          "x-title-i18n": {
+            "zh-CN": "拾光空闲自动收起（分钟）",
+            "en": "Idle auto-collapse (minutes)"
+          },
+          "x-description-i18n": {
+            "zh-CN": "无操作先缩球，再闲置同样时间后关闭并释放 Tk 线程；0 = 不自动收起。",
+            "en": "Collapse to the ball after being idle, then close and free the Tk thread after another idle period; 0 = disabled."
+          }
+        },
+        "catalog_history_limit": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 100,
+          "title": "拾光送入历史条数",
+          "default": 20,
+          "x-title-i18n": {
+            "zh-CN": "拾光送入历史条数",
+            "en": "Shiguang send history limit"
+          }
+        },
+        "catalog_restore_last_search": {
+          "type": "boolean",
+          "title": "打开拾光时恢复上次搜索",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "打开拾光时恢复上次搜索",
+            "en": "Restore last search on open"
+          }
+        },
+        "catalog_quote_footer": {
+          "type": "string",
+          "title": "拾光引用模板结尾",
+          "default": "（这是从拾光对话目录里翻出来的，想和你一起看看。）",
+          "description": "「引用」模板末尾的一句话；留空则不添加。",
+          "x-title-i18n": {
+            "zh-CN": "拾光引用模板结尾",
+            "en": "Quote template footer"
+          },
+          "x-description-i18n": {
+            "zh-CN": "「引用」模板末尾的一句话；留空则不添加。",
+            "en": "Footer line for the quote template; leave empty to omit."
+          }
+        },
+        "catalog_topic_lead": {
+          "type": "string",
+          "title": "拾光话题模板开头",
+          "default": "我翻到这一段，想和你聊聊：",
+          "description": "「话题」模板在原文前面的一句话；留空则不添加。",
+          "x-title-i18n": {
+            "zh-CN": "拾光话题模板开头",
+            "en": "Topic template lead"
+          },
+          "x-description-i18n": {
+            "zh-CN": "「话题」模板在原文前面的一句话；留空则不添加。",
+            "en": "Lead line before the quoted lines in the topic template; leave empty to omit."
+          }
+        },
+        "catalog_topic_footer": {
+          "type": "string",
+          "title": "拾光话题模板结尾",
+          "default": "（不用马上接话，看到就好。）",
+          "description": "「话题」模板末尾的一句话；留空则不添加。",
+          "x-title-i18n": {
+            "zh-CN": "拾光话题模板结尾",
+            "en": "Topic template footer"
+          },
+          "x-description-i18n": {
+            "zh-CN": "「话题」模板末尾的一句话；留空则不添加。",
+            "en": "Footer line for the topic template; leave empty to omit."
+          }
+        },
+        "screening_review_word_limit": {
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 2000,
+          "title": "观后感字数上限",
+          "default": 300,
+          "x-title-i18n": {
+            "zh-CN": "观后感字数上限",
+            "en": "Screening review word limit"
+          }
+        },
+        "screening_review_title_format": {
+          "type": "string",
+          "title": "观后感标题格式",
+          "default": "{date} · 放映厅观后感",
+          "description": "支持 {date} 占位符。",
+          "x-title-i18n": {
+            "zh-CN": "观后感标题格式",
+            "en": "Screening review title format"
+          },
+          "x-description-i18n": {
+            "zh-CN": "支持 {date} 占位符。",
+            "en": "Supports the {date} placeholder."
+          }
+        },
+        "cat_diary_word_limit": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000,
+          "title": "猫娘日记单次字数上限",
+          "default": 500,
+          "x-title-i18n": {
+            "zh-CN": "猫娘日记单次字数上限",
+            "en": "Catgirl diary word limit"
+          }
+        },
+        "cat_diary_default_visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ],
+          "title": "猫娘日记默认可见性",
+          "description": "未指定时使用：public=公开，private=仅自己可见（猫娘自己仍读得到）。",
+          "default": "public",
+          "x-title-i18n": {
+            "zh-CN": "猫娘日记默认可见性",
+            "en": "Catgirl diary default visibility"
+          }
+        },
+        "cat_diary_default_mood": {
+          "type": "string",
+          "enum": [
+            "excited",
+            "happy",
+            "calm",
+            "tired",
+            "anxious",
+            "sad",
+            "angry",
+            "neutral"
+          ],
+          "title": "猫娘日记默认心情",
+          "description": "未指定时使用的心情。",
+          "default": "neutral",
+          "x-title-i18n": {
+            "zh-CN": "猫娘日记默认心情",
+            "en": "Catgirl diary default mood"
+          }
+        },
+        "cat_diary_private_readable": {
+          "type": "boolean",
+          "title": "私密日记是否可读",
+          "description": "开启后，猫娘标了「仅自己可见」的私密日记也会显示在浏览页「猫娘日记」与插件面板里；关闭则只保留在猫娘自己那边（她的读写不受影响）。",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "私密日记是否可读",
+            "en": "Private diaries readable"
+          },
+          "x-description-i18n": {
+            "zh-CN": "开启后，猫娘标了「仅自己可见」的私密日记也会显示在浏览页「猫娘日记」与插件面板里；关闭则只保留在猫娘自己那边（她的读写不受影响）。",
+            "en": "When on, the catgirl's diaries marked private also appear in the browse page's \"Catgirl diary\" tab and the plugin panel; when off they stay with the catgirl only (her own read/write access is unaffected)."
+          }
+        },
+        "diary_engine": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "local",
+            "llm"
+          ],
+          "title": "日记生成方式",
+          "description": "auto：能用模型就用模型，否则本地摘要；local：只用本地统计摘要；llm：优先用模型。",
+          "x-title-i18n": {
+            "zh-CN": "日记生成方式",
+            "en": "Diary engine"
+          },
+          "x-description-i18n": {
+            "zh-CN": "auto：能用模型就用模型，否则本地摘要；local：只用本地统计摘要；llm：优先用模型。",
+            "en": "auto: use the model when possible, otherwise a local summary; local: local summary only; llm: prefer the model."
+          }
+        },
+        "diary_style": {
+          "type": "string",
+          "enum": [
+            "first_person",
+            "third_person",
+            "record"
+          ],
+          "title": "日记口吻",
+          "description": "first_person：第一人称；third_person：第三人称；record：克制的编年记录。",
+          "x-title-i18n": {
+            "zh-CN": "日记口吻",
+            "en": "Diary voice"
+          },
+          "x-description-i18n": {
+            "zh-CN": "first_person：第一人称；third_person：第三人称；record：克制的编年记录。",
+            "en": "first_person, third_person, or a terse chronicle record."
+          }
+        },
+        "diary_language": {
+          "type": "string",
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "日记语言",
+          "default": "zh-CN",
+          "x-title-i18n": {
+            "zh-CN": "日记语言",
+            "en": "Diary language"
+          }
+        },
+        "scene_gap_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1440,
+          "title": "场景切分间隔（分钟）",
+          "description": "两句话间隔超过这个分钟数就另起一个场景；0 表示整天不切分。",
+          "default": 30,
+          "x-title-i18n": {
+            "zh-CN": "场景切分间隔（分钟）",
+            "en": "Scene gap (minutes)"
+          },
+          "x-description-i18n": {
+            "zh-CN": "两句话间隔超过这个分钟数就另起一个场景；0 表示整天不切分。",
+            "en": "Start a new scene when the gap between two lines exceeds this; 0 disables splitting."
+          }
+        },
+        "master_name": {
+          "type": "string",
+          "title": "对用户的称呼",
+          "default": "主人",
+          "x-title-i18n": {
+            "zh-CN": "对用户的称呼",
+            "en": "Name for the user"
+          }
+        },
+        "catgirl_name": {
+          "type": "string",
+          "title": "角色称呼",
+          "default": "猫娘",
+          "x-title-i18n": {
+            "zh-CN": "角色称呼",
+            "en": "Name for the character"
+          }
+        },
+        "diary_word_limit": {
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 2000,
+          "title": "日记正文字数上限",
+          "default": 400,
+          "x-title-i18n": {
+            "zh-CN": "日记正文字数上限",
+            "en": "Diary body word limit"
+          }
+        },
+        "keyword_top_n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50,
+          "title": "每天提取多少个关键词",
+          "default": 8,
+          "x-title-i18n": {
+            "zh-CN": "每天提取多少个关键词",
+            "en": "Keywords per day"
+          }
+        },
+        "highlight_top_n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50,
+          "title": "本地摘要保留几条精彩片段",
+          "default": 5,
+          "x-title-i18n": {
+            "zh-CN": "本地摘要保留几条精彩片段",
+            "en": "Highlights in the local summary"
+          }
+        },
+        "llm_timeout_seconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 600,
+          "title": "模型请求超时（秒）",
+          "default": 60,
+          "x-title-i18n": {
+            "zh-CN": "模型请求超时（秒）",
+            "en": "Model timeout (seconds)"
+          }
+        },
+        "llm_temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "title": "模型温度",
+          "default": 0.4,
+          "x-title-i18n": {
+            "zh-CN": "模型温度",
+            "en": "Model temperature"
+          }
+        },
+        "capture_all_sources": {
+          "type": "boolean",
+          "title": "连系统消息一起记录",
+          "description": "默认只记录用户与角色的话；打开后系统/工具消息也会进章节。",
+          "x-title-i18n": {
+            "zh-CN": "连系统消息一起记录",
+            "en": "Capture system messages too"
+          },
+          "x-description-i18n": {
+            "zh-CN": "默认只记录用户与角色的话；打开后系统/工具消息也会进章节。",
+            "en": "By default only user and character lines are recorded."
+          }
+        },
+        "live_refresh_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 86400,
+          "title": "刷新当天章节的间隔（秒）",
+          "default": 300,
+          "x-title-i18n": {
+            "zh-CN": "刷新当天章节的间隔（秒）",
+            "en": "Today's chapter refresh interval (seconds)"
+          }
+        },
+        "read_host_memory_store": {
+          "type": "boolean",
+          "title": "读取宿主对话存储（建议开启）",
+          "description": "宿主的 memory\\<角色>\\time_indexed.db 里有用户与角色双方的完整对话；消息总线只给用户那一半。关掉就只记总线上的内容。",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "读取宿主对话存储（建议开启）",
+            "en": "Read the host conversation store"
+          },
+          "x-description-i18n": {
+            "zh-CN": "宿主的 memory\\<角色>\\time_indexed.db 里有用户与角色双方的完整对话；消息总线只给用户那一半。",
+            "en": "The host's memory/<character>/time_indexed.db holds both sides of the conversation; the message bus only exposes the user's half."
+          }
+        },
+        "memory_store_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000,
+          "title": "每次读取多少条宿主记录",
+          "default": 200,
+          "x-title-i18n": {
+            "zh-CN": "每次读取多少条宿主记录",
+            "en": "Rows read from the host store"
+          }
+        },
+        "memory_store_character": {
+          "type": "string",
+          "title": "角色目录名（留空自动选最近活跃的）",
+          "x-title-i18n": {
+            "zh-CN": "角色目录名（留空自动选最近活跃的）",
+            "en": "Character store folder (empty = most recent)"
+          }
+        },
+        "finalize_enabled": {
+          "type": "boolean",
+          "title": "自动结算已结束的日期",
+          "default": true,
+          "x-title-i18n": {
+            "zh-CN": "自动结算已结束的日期",
+            "en": "Finalize finished days automatically"
+          }
+        },
+        "redact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "需要脱敏的字符串",
+          "description": "出现在对话里会被替换成 ＊＊＊。",
+          "x-title-i18n": {
+            "zh-CN": "需要脱敏的字符串",
+            "en": "Strings to redact"
+          },
+          "x-description-i18n": {
+            "zh-CN": "出现在对话里会被替换成 ＊＊＊。",
+            "en": "Occurrences are replaced with ＊＊＊ before anything is written."
+          }
+        }
+      }
+    }
+  }
+}

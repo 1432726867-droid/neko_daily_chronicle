@@ -1,0 +1,14 @@
+# 与官方脚手架一致的保守配置：只做基础检查，不强制格式化。
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # 行长由 line-length 提示，不作为错误
+    "B008",  # 装饰器里调用函数（tr(...) / 默认参数）是 SDK 的用法
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]  # 测试需要先改 sys.path 再 import
+"tools/*" = ["E402"]

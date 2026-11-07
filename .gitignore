@@ -1,0 +1,23 @@
+# 运行时数据（正常写在用户数据目录，这里防止误提交）
+/data/
+/raw/
+/chapters/
+/diary/
+
+# 测试与工具产物
+.tmp-tests/
+.test-run.log
+__pycache__/
+*.pyc
+*.pyc-check
+
+# 打包产物（安装包按 GitHub Release 分发，不进源码库）
+/dist/
+
+# 编辑器
+.vscode/
+.idea/
+
+# Python 环境
+.venv/
+venv/

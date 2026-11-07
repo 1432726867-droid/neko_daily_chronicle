@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>放映厅 · 小窗</title>
+<style>
+  :root {
+    --pink: #ff8db4;
+    --peach: #ffb88c;
+    --accent: #d4638a;
+    --text: #fce9ef;
+    --muted: #c8a3b3;
+    --line: rgba(255, 255, 255, .14);
+    --grad: linear-gradient(135deg, #ff8db4, #ffb88c);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  html { background: #1d1218; }
+  body {
+    margin: 0; color: var(--text);
+    background: radial-gradient(circle at 50% 0%, #4a2b3a 0%, #2b1a22 55%, #1d1218 100%);
+    font: 12px/1.65 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px;
+  }
+  .titlebar {
+    flex: none; height: 36px; display: flex; align-items: center; gap: 8px;
+    padding: 0 8px 0 12px; background: rgba(255, 255, 255, .06);
+    -webkit-app-region: drag; user-select: none;
+  }
+  .titlebar .dot { color: #ffd08a; }
+  .titlebar .name { font-weight: 800; font-size: 12px; letter-spacing: .4px; }
+  .titlebar .spacer { flex: 1; }
+  .titlebar button {
+    -webkit-app-region: no-drag; width: 26px; height: 24px; padding: 0;
+    border: none; border-radius: 7px; background: transparent; color: #d9c3cc;
+    cursor: pointer; font-size: 13px;
+  }
+  .titlebar button:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+  .meta { padding: 8px 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .meta .date { color: #ffd7e5; font-weight: 700; font-size: 12px; }
+  .badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+  }
+  .badge.playing { background: rgba(126, 200, 144, .2); color: #b8f0c8; }
+  .badge.paused { background: rgba(240, 162, 58, .2); color: #ffd08a; }
+  .badge.ended { color: #d9c3cc; }
+  .progress { height: 5px; margin: 8px 14px 6px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+  .progress span { display: block; height: 100%; width: 0; background: var(--grad); transition: width .2s; }
+  .scene { padding: 0 14px 8px; color: #d9c3cc; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-cover {
+    position: relative; height: 66px; margin: 0 14px 8px; border-radius: 11px;
+    overflow: hidden; background: linear-gradient(135deg, rgba(255, 141, 180, .3), rgba(255, 184, 140, .18));
+  }
+  .mini-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini-cover-text {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px;
+    background: linear-gradient(transparent, rgba(20, 10, 15, .78));
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  }
+  .mini-cover-text strong { color: #fff; font-size: 11px; }
+  .mini-cover-text span { color: #ffd7e5; font-size: 10px; }
+  .mini-cover:not(.has-image) img { display: none; }
+  .banner {
+    margin: 0 14px 8px; padding: 6px 9px; border-radius: 9px; font-size: 11px; line-height: 1.5;
+    background: rgba(255, 208, 138, .14); border: 1px solid rgba(255, 208, 138, .4); color: #ffe4b8;
+  }
+  .lines { flex: 1; overflow: auto; padding: 4px 14px 8px; scroll-behavior: smooth; }
+  .row { display: flex; gap: 7px; padding: 5px 0; align-items: flex-start; }
+  .row .idx { flex: none; width: 34px; text-align: right; color: #c8a3b3; font: 10px/1.5 Consolas, monospace; padding-top: 3px; }
+  .row .bubble {
+    max-width: calc(100% - 42px); border-radius: 10px; padding: 6px 9px;
+    background: rgba(255, 255, 255, .08); white-space: pre-wrap; word-break: break-word; font-size: 12px;
+  }
+  .row.user .bubble { background: rgba(91, 157, 217, .18); }
+  .row.assistant .bubble { background: rgba(212, 99, 138, .2); }
+  .row .who { display: block; font-size: 10px; font-weight: 800; color: #ffd7e5; margin-bottom: 1px; }
+  .row.user .who { color: #b9dcff; }
+  .row.future .bubble { filter: blur(4px); opacity: .5; user-select: none; }
+  .row.current .bubble { outline: 1px solid rgba(255, 208, 138, .75); }
+  .row.cat-here { border-top: 1px dashed rgba(255, 208, 138, .4); margin-top: 7px; padding-top: 8px; }
+  .row.cat-here::before { content: "🐾"; margin-right: 2px; color: #ffd08a; }
+  .empty { color: #d9c3cc; text-align: center; padding: 24px 8px; font-size: 11px; }
+  .foot {
+    flex: none; padding: 8px 12px 10px; border-top: 1px solid var(--line);
+    background: rgba(0, 0, 0, .12);
+  }
+  .stats { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; padding: 0 2px 7px; }
+  .stats strong { color: #ffd7e5; font-weight: 700; }
+  .controls { display: flex; flex-wrap: wrap; gap: 5px; }
+  .controls button {
+    flex: 1; min-width: 62px; padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .09); color: #fce9ef; cursor: pointer; font-size: 11px;
+  }
+  .controls button:hover { background: rgba(255, 255, 255, .18); }
+  .controls button.primary {
+    background: var(--grad); color: #fff; border-color: transparent; font-weight: 800;
+  }
+  .controls button:disabled { opacity: .45; cursor: default; }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="dot">🎬</span>
+    <span class="name">放映厅 · 小窗</span>
+    <span class="spacer"></span>
+    <button id="btn-expand" title="展开到大窗">↗</button>
+    <button id="btn-close" title="关闭">✕</button>
+  </div>
+  <div class="meta">
+    <span class="date" id="date">--</span>
+    <span class="badge" id="badge">未开始</span>
+  </div>
+  <div class="progress"><span id="bar"></span></div>
+  <div class="scene" id="scene">等待开场…</div>
+  <div class="mini-cover" id="mini-cover">
+    <img id="mini-cover-img" alt="" hidden />
+    <div class="mini-cover-text">
+      <strong id="mini-cover-scene">场景封面</strong>
+      <span id="mini-cover-note">无图片</span>
+    </div>
+  </div>
+  <div class="banner" id="banner" hidden></div>
+  <div class="lines" id="lines"><div class="empty">正在读取放映厅…</div></div>
+  <div class="foot">
+    <div class="stats">
+      <span>银幕 <strong id="cursor">0</strong></span>
+      <span>她看到 <strong id="cat-cursor">0</strong></span>
+      <span>停在 <strong id="stop-at">-</strong></span>
+    </div>
+    <div class="controls">
+      <button id="btn-play" class="primary">▶ 继续</button>
+      <button id="btn-next">⏭ 下一段</button>
+      <button id="btn-pause">⏸ 停在这里</button>
+      <button id="btn-invite">🐱 让她说</button>
+    </div>
+  </div>
+<script>
+"use strict";
+
+const pluginId = location.pathname.split("/").filter(Boolean)[1] || "neko_daily_chronicle";
+const DRIVER = "mini:" + Math.random().toString(36).slice(2, 8);
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const state = {
+  date: "", data: null, session: null, rows: [], busy: false, autoTimer: null, pollTimer: null,
+  lastKey: "", coverLoadedFor: "", coverRequest: 0, coverCache: {},
+};
+
+function escapeHtml(text) {
+  return String(text == null ? "" : text)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+async function callEntry(entryId, args) {
+  const response = await fetch("/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plugin_id: pluginId, entry_id: entryId, args: args || {} }),
+  });
+  if (!response.ok) {
+    throw new Error("宿主返回 " + response.status);
+  }
+  const run = await response.json();
+  for (let i = 0; i < 600; i += 1) {
+    await sleep(400);
+    const record = await (await fetch("/runs/" + run.run_id)).json();
+    if (["succeeded", "failed", "timeout", "canceled"].includes(record.status)) {
+      if (record.status !== "succeeded") throw new Error(record.error || record.status);
+      const exported = await (await fetch("/runs/" + run.run_id + "/export")).json();
+      const item = (exported.items || [])[0];
+      const payload = item && item.json;
+      if (!payload) throw new Error("没有拿到结果");
+      if (payload.success === false || payload.error) throw new Error(payload.error || "入口返回失败");
+      return payload.data;
+    }
+  }
+  throw new Error("等待宿主结果超时");
+}
+
+function statusText(status) {
+  if (status === "playing") return "放映中";
+  if (status === "ended") return "已结束";
+  return "已暂停";
+}
+
+function keyOf(data) {
+  const session = (data && data.session) || {};
+  const marks = session.marks || [];
+  const last = marks.length ? marks[marks.length - 1] : null;
+  const reviews = session.reviews || [];
+  const lastReview = reviews.length ? reviews[reviews.length - 1] : null;
+  return [data && data.date, data && data.total, session.status, session.cursor,
+    session.cat_cursor, session.stop_at, marks.length, last && last.id, last && last.at,
+    reviews.length, lastReview && lastReview.id, session.last_pause_reason].join("|");
+}
+
+async function loadMiniCover(filename) {
+  const img = $("mini-cover-img");
+  if (!filename) {
+    img.hidden = true;
+    img.removeAttribute("src");
+    state.coverLoadedFor = "";
+    $("mini-cover").classList.remove("has-image");
+    return;
+  }
+  if (state.coverLoadedFor === filename && !img.hidden) return;
+  const date = state.date;
+  const request = ++state.coverRequest;
+  state.coverLoadedFor = filename;
+  if (state.coverCache[filename]) {
+    img.src = state.coverCache[filename];
+    img.hidden = false;
+    return;
+  }
+  try {
+    const data = await callEntry("get_image_thumb", { date: date, filename: filename });
+    if (request !== state.coverRequest || state.date !== date) return;
+    if (data && data.data) {
+      state.coverCache[filename] = data.data;
+      img.src = data.data;
+      img.hidden = false;
+      return;
+    }
+  } catch (error) { /* 保留渐变封面 */ }
+  if (request === state.coverRequest) {
+    img.hidden = true;
+    $("mini-cover").classList.remove("has-image");
+  }
+}
+
+function renderCover(data, progress) {
+  const cover = (data && data.cover) || {};
+  const filename = String(cover.filename || "");
+  const sceneLabel = String((progress && progress.scene_label) || "");
+  $("mini-cover").classList.toggle("has-image", !!filename);
+  $("mini-cover-scene").textContent = sceneLabel || ("第 " + (cover.scene_no || 1) + " 段");
+  $("mini-cover-note").textContent = filename
+    ? (cover.manual ? "手动封面" : "自动封面") : "无图片";
+  loadMiniCover(filename);
+}
+
+function stopAuto() {
+  if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }
+}
+function stopPoll() {
+  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+}
+function stopTimers() { stopAuto(); stopPoll(); }
+
+function arm() {
+  stopTimers();
+  if (document.hidden || !state.session) return;
+  const interval = Math.max(1, Number(state.data && state.data.auto_interval || 2.5));
+  if (state.session.status === "playing" && (!state.session.driver || state.session.driver === DRIVER)) {
+    state.autoTimer = setInterval(autoTick, interval * 1000);
+  }
+  state.pollTimer = setInterval(poll, 3000);
+}
+
+function apply(data) {
+  if (!data) return;
+  state.data = data;
+  state.date = data.date || state.date;
+  state.session = data.session || null;
+  if (Array.isArray(data.items) && data.items.length) state.rows = data.items;
+  state.lastKey = keyOf(data);
+}
+
+function render() {
+  if (!state.data) return;
+  const data = state.data;
+  const session = state.session || {};
+  const progress = data.progress || {};
+  if (!data.enabled) {
+    $("scene").textContent = "放映厅未开启";
+    $("lines").innerHTML = '<div class="empty">在插件配置里打开 screening_enabled 后就能使用。</div>';
+    $("btn-play").disabled = true;
+    return;
+  }
+  const total = Number(data.total || 0);
+  const cursor = Number(progress.cursor || session.cursor || 0);
+  const catCursor = Number(progress.cat_cursor || session.cat_cursor || 0);
+  const stopAt = Number(progress.stop_at || session.stop_at || 0);
+  $("date").textContent = (state.date || "--") + " · " + total + " 条";
+  const badge = $("badge");
+  badge.textContent = statusText(session.status);
+  badge.className = "badge " + (session.status || "paused");
+  $("bar").style.width = (total ? Math.min(100, Number(progress.percent || 0)) : 0) + "%";
+  $("scene").textContent = total
+    ? (progress.scene_label ? "🎞 " + progress.scene_label : "第 " + (cursor || 1) + " 条")
+    : "这一天没有记录";
+  $("cursor").textContent = "第 " + cursor + " 条";
+  $("cat-cursor").textContent = "第 " + catCursor + " 条";
+  $("stop-at").textContent = stopAt ? "第 " + stopAt + " 条" : total ? "结尾" : "-";
+  renderCover(data, progress);
+
+  const reasons = {
+    catgirl_spoke: "🐱 她刚刚开口了，放映已停下。",
+    catgirl_comment: "🐱 她写了手记，放映已停下。",
+    planned_stop: "🌙 到了这一场约定的停靠点。",
+    invite: "🐱 正在等她回应…",
+  };
+  const bannerText = session.status === "ended" && total ? "🎞 本场放映结束" : (reasons[session.last_pause_reason] || "");
+  $("banner").hidden = !bannerText;
+  $("banner").textContent = bannerText;
+
+  const box = $("lines");
+  box.innerHTML = "";
+  if (!state.rows.length) {
+    box.innerHTML = '<div class="empty">还没有开始放映。</div>';
+  } else {
+    for (const row of state.rows) {
+      const future = row.index > cursor;
+      const line = document.createElement("div");
+      line.className = "row " + (row.role || "") + (future ? " future" : "") +
+        (row.index === cursor && cursor > 0 ? " current" : "") +
+        (catCursor > 0 && row.index === catCursor ? " cat-here" : "");
+      const idx = document.createElement("div");
+      idx.className = "idx";
+      idx.textContent = "#" + row.index;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = (row.speaker || (row.role === "user" ? "主人" : "猫娘")) + " · " + (row.time || "");
+      const text = document.createElement("span");
+      text.textContent = row.text || "";
+      bubble.append(who, text);
+      line.append(idx, bubble);
+      box.appendChild(line);
+    }
+    requestAnimationFrame(() => {
+      const current = box.querySelector(".row.current");
+      if (current) current.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+  const play = $("btn-play");
+  play.textContent = session.status === "playing" ? "⏸ 暂停"
+    : session.status === "ended" && total ? "↻ 从头"
+    : (session.status === "paused" && cursor === 0 && total ? "▶ 开始" : "▶ 继续");
+  arm();
+}
+
+async function readWindow() {
+  const pageSize = Number(state.data && state.data.page_size || 12);
+  const cursor = Number(state.session && state.session.cursor || 0);
+  const data = await callEntry("screening_read", {
+    date: state.date, start: Math.max(1, cursor - 4), count: Math.max(8, pageSize),
+  });
+  apply(data);
+  render();
+}
+
+async function control(action, extra) {
+  if (!state.date || state.busy) return null;
+  state.busy = true;
+  try {
+    const data = await callEntry("screening_control", Object.assign({
+      date: state.date, action, driver: DRIVER, who: "master",
+    }, extra || {}));
+    apply(data);
+    render();
+    return data;
+  } catch (error) {
+    $("scene").textContent = "操作失败：" + error.message;
+    return null;
+  } finally {
+    state.busy = false;
+  }
+}
+
+async function autoTick() {
+  if (state.busy || document.hidden) return;
+  if (!state.session || state.session.status !== "playing") { stopAuto(); return; }
+  if (state.session.driver && state.session.driver !== DRIVER) { stopAuto(); return; }
+  state.busy = true;
+  try {
+    const data = await callEntry("screening_control", {
+      date: state.date, action: "advance", count: 1, mode: "line",
+      auto: true, driver: DRIVER, who: "master",
+    });
+    apply(data);
+    render();
+    if (data.ignored || (data.session && data.session.status !== "playing")) stopAuto();
+  } catch (error) {
+    stopAuto();
+  } finally {
+    state.busy = false;
+  }
+}
+
+async function poll() {
+  if (document.hidden || !state.date) return;
+  try {
+    const data = await callEntry("screening_state", { date: state.date });
+    if (!data || !data.enabled) return;
+    if (keyOf(data) !== state.lastKey) await readWindow();
+  } catch (error) { /* silent */ }
+}
+
+async function start() {
+  const params = new URLSearchParams(location.search || "");
+  let date = params.get("date") || "";
+  if (!date) {
+    try {
+      const days = await callEntry("list_days", { limit: 1 });
+      const items = (days && days.days) || [];
+      date = items.length ? items[0].date : "";
+    } catch (error) { date = ""; }
+  }
+  if (!date) {
+    $("scene").textContent = "没有可放映的日期";
+    $("lines").innerHTML = '<div class="empty">先去浏览页留下一些对话记录。</div>';
+    return;
+  }
+  state.date = date;
+  const data = await callEntry("screening_open", { date });
+  apply(data);
+  if (!data.enabled) { render(); return; }
+  await readWindow();
+  render();
+}
+
+$("btn-play").onclick = async () => {
+  const session = state.session;
+  if (!session) return;
+  if (session.status === "playing") {
+    await control("pause", { stop_at: Number(session.cursor || 0), note: "" });
+  } else if (session.status === "ended") {
+    await control("restart");
+  } else {
+    await control("resume");
+  }
+};
+$("btn-next").onclick = () => control("advance", { mode: "scene", count: 1 });
+$("btn-pause").onclick = () => {
+  const cursor = Number(state.session && state.session.cursor || 0);
+  control("pause", { stop_at: cursor, note: "" });
+};
+$("btn-invite").onclick = async () => {
+  if (!state.date) return;
+  state.busy = true;
+  try {
+    const data = await callEntry("screening_invite", { date: state.date });
+    apply(data);
+    render();
+  } catch (error) {
+    $("scene").textContent = "邀请失败：" + error.message;
+  } finally {
+    state.busy = false;
+  }
+};
+$("btn-expand").onclick = () => {
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.focus();
+      if (window.opener.loadScreening) window.opener.loadScreening(false);
+    }
+  } catch (error) { /* ignore */ }
+  window.close();
+};
+$("btn-close").onclick = () => window.close();
+
+function saveBounds() {
+  try {
+    localStorage.setItem("nekoScreeningBounds", JSON.stringify({
+      width: window.outerWidth || window.innerWidth,
+      height: window.outerHeight || window.innerHeight,
+      left: window.screenX,
+      top: window.screenY,
+    }));
+  } catch (error) { /* ignore */ }
+}
+window.addEventListener("beforeunload", saveBounds);
+window.addEventListener("resize", saveBounds);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopTimers();
+  else arm();
+});
+
+start().catch((error) => {
+  $("scene").textContent = "读取失败";
+  $("lines").innerHTML = '<div class="empty">' + escapeHtml(error.message) + "</div>";
+});
+</script>
+</body>
+</html>
