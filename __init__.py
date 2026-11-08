@@ -68,11 +68,8 @@ from .chronicle.store import ChronicleStore
 
 PLUGIN_ID = "neko_daily_chronicle"
 
-#: 定时器间隔在装饰器求值时固定，因此这里写死；配置项控制的是"要不要做"。
-HARVEST_SECONDS = 60
-FINALIZE_SECONDS = 600
-MEMO_SECONDS = 1800
-CAPSULE_SECONDS = 3600
+#: 定时器间隔在装饰器求值时固定，因此直接写字面量（官方 check --release 也要求
+#: seconds 是字面数值）：60 秒补录 / 600 秒收尾 / 1800 秒备忘录 / 3600 秒时间胶囊。
 
 #: 拾光开启时，用多快的轻量轮询接住 ``#拾光`` 命令；关闭时这个任务不会创建。
 #: 补录是 60 秒一轮，命令等不了那么久，所以单独走一个只读几条记录的短轮询。
@@ -982,7 +979,7 @@ class NekoDailyChroniclePlugin(NekoPluginBase):
             self._warn_throttled("递送内容给猫娘失败：{}", exc)
             return False
 
-    @timer_interval(id="harvest_tick", seconds=HARVEST_SECONDS, auto_start=True)
+    @timer_interval(id="harvest_tick", seconds=60, auto_start=True)
     async def harvest_tick(self, **_):
         """每分钟从总线补录一次，并定期刷新当天的章节文件。
 
@@ -1001,7 +998,7 @@ class NekoDailyChroniclePlugin(NekoPluginBase):
         )
         return Ok(result)
 
-    @timer_interval(id="finalize_tick", seconds=FINALIZE_SECONDS, auto_start=True)
+    @timer_interval(id="finalize_tick", seconds=600, auto_start=True)
     async def finalize_tick(self, **_):
         """每天 FINALIZE_HOUR 点（默认 18:00）开始结算前一天的章节 + 每日日记。
 
@@ -1101,7 +1098,7 @@ class NekoDailyChroniclePlugin(NekoPluginBase):
             )
         return Ok({})
 
-    @timer_interval(id="memo_tick", seconds=MEMO_SECONDS, auto_start=True)
+    @timer_interval(id="memo_tick", seconds=1800, auto_start=True)
     async def memo_tick(self, **_):
         """每 30 分钟抓一次宿主 recent.json 的 system 备忘录，只追加新增段。
 
@@ -1133,7 +1130,7 @@ class NekoDailyChroniclePlugin(NekoPluginBase):
         )
         return {"day": day, **result}
 
-    @timer_interval(id="capsule_tick", seconds=CAPSULE_SECONDS, auto_start=True)
+    @timer_interval(id="capsule_tick", seconds=3600, auto_start=True)
     async def capsule_tick(self, **_):
         """每小时检查一次到期胶囊；每枚只提醒一次，且默认在设定时刻之后。"""
 

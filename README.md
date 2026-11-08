@@ -291,7 +291,7 @@ N.E.K.O 的插件 SDK **没有**"让宿主模型帮我生成一段文字"的接�
 ## 测试与自检
 
 ```bash
-# 单元测试 + 端到端冒烟测试（148 个，全部只用标准库）
+# 单元测试 + 端到端冒烟测试（182 个，全部只用标准库）
 python -m unittest discover -s tests -t . -v
 
 # i18n key 与代码引用是否对得上
@@ -358,7 +358,7 @@ python tools/make_demo.py
   当天章节自动生成到 `chapters/2026-10-06.md`，编号与读取接口口径一致；
 * **回忆录**：`toggle_memory`/`memories` 入口在真机验证通过（收藏/取消/越界报错）；
 * **立即生成日记**：`generate_diary` 生成 356 字的猫娘第一人称日记（本地引擎、≤400 字）；
-* 148 个测试在本地 Python 3.12 下全部通过（含用替身 SDK 跑通整条入口链路的冒烟测试）。
+* 182 个测试在本地 Python 3.12 下全部通过（含用替身 SDK 跑通整条入口链路的冒烟测试）。
 
 ### 消息总线的角色信息（重要）
 
@@ -443,7 +443,7 @@ neko_daily_chronicle/
 ├── docs/quickstart.md          # 面板里的「使用说明」
 ├── i18n/zh-CN.json, en.json    # 界面文案
 ├── dist/                       # 打包产物（由 tools/package_plugin.py 生成；dist/archive/ 存旧版本备份）
-├── tests/                      # 148 个测试
+├── tests/                      # 182 个测试
 ├── tools/                      # check_i18n / check_plugin / make_demo / package_plugin
 └── examples/                   # 由真实代码生成的示例章节与日记
 ```

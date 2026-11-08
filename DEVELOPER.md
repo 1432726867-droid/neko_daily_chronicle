@@ -227,7 +227,7 @@ neko_daily_chronicle/
 ├── static/index.html        # 静态浏览页（复制序号短语可配置、模型状态徽标）
 ├── docs/quickstart.md       # 面板里的「使用说明」
 ├── i18n/zh-CN.json, en.json # 界面文案
-├── tests/                   # 148 个测试（纯逻辑 + 存储 + 入口冒烟）
+├── tests/                   # 182 个测试（纯逻辑 + 存储 + 入口冒烟）
 ├── tools/                   # check_plugin / check_i18n / make_demo / package_plugin
 ├── dist/                    # 打包产物（tools/package_plugin.py 生成）
 └── examples/                # 真实代码生成的示例章节/日记
@@ -252,7 +252,7 @@ python tools/check_plugin.py
 # 2. i18n key 对齐
 python tools/check_i18n.py
 
-# 3. 单元测试 + 入口冒烟（148 个，纯标准库）
+# 3. 单元测试 + 入口冒烟（182 个，纯标准库）
 python -m unittest discover -s tests -t . -v
 
 # 4. 在真机里重载（改完源码必须 reload 才生效）
