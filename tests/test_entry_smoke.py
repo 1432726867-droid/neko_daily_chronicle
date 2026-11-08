@@ -234,15 +234,7 @@ class _FakeCtx:
 
 
 def _load_plugin_module():
-    """优先用真实 SDK；没有就装一个最小替身。"""
-
-    try:
-
-        if str(ROOT.parent) not in sys.path:
-            sys.path.insert(0, str(ROOT.parent))
-        return importlib.import_module("plugin.plugins.neko_daily_chronicle")
-    except Exception:  # noqa: BLE001 - 回落到替身
-        pass
+    """统一使用替身 SDK，保证在宿主 SDK 环境与纯净环境下结果一致。"""
 
     # 真 SDK 已被导入过时，必须连同插件子模块一起清干净，否则会拿到真实的
     # PluginRouter/ConfigRouter，跟下面的假 NekoPluginBase 混用而报错。
