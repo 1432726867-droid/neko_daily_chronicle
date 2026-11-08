@@ -1,0 +1,11 @@
+# 插件自身的 Python 工程元数据（无第三方运行时依赖，依赖统一放在 vendor/）。
+# 发布校验会读取本文件；name/version 与 plugin.toml 保持一致。
+[project]
+name = "neko_daily_chronicle"
+version = "0.2.0"
+description = "把和猫娘的真实对话编成有温度的日记与章节"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/1432726867-droid/neko_daily_chronicle"
