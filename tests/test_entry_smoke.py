@@ -68,8 +68,19 @@ class _Logger:
 
 
 def _install_fake_sdk() -> None:
-    plugin_pkg = types.ModuleType("plugin")
-    plugin_pkg.__path__ = []  # type: ignore[attr-defined]
+    """用替身替换 SDK 模块本身，但保留宿主 ``plugin`` / ``plugin.plugins`` 包。
+
+    在 N.E.K.O 树里 pytest 会以 ``plugin.plugins.<id>.tests.<name>`` 收集测试模块，
+    整包删除 ``plugin*`` 会让后续模块导入直接 ``ModuleNotFoundError``。
+    """
+
+    for name in [n for n in sys.modules if n == "plugin.sdk" or n.startswith("plugin.sdk.")]:
+        del sys.modules[name]
+    plugin_pkg = sys.modules.get("plugin")
+    if plugin_pkg is None:
+        plugin_pkg = types.ModuleType("plugin")
+        plugin_pkg.__path__ = []  # type: ignore[attr-defined]
+        sys.modules["plugin"] = plugin_pkg
     sdk_pkg = types.ModuleType("plugin.sdk")
     sdk_pkg.__path__ = []  # type: ignore[attr-defined]
     plugin_pkg.sdk = sdk_pkg  # type: ignore[attr-defined]
@@ -236,10 +247,8 @@ class _FakeCtx:
 def _load_plugin_module():
     """统一使用替身 SDK，保证在宿主 SDK 环境与纯净环境下结果一致。"""
 
-    # 真 SDK 已被导入过时，必须连同插件子模块一起清干净，否则会拿到真实的
+    # 之前导入过的真 SDK 版插件模块要清掉，否则会拿到真实 SDK 的
     # PluginRouter/ConfigRouter，跟下面的假 NekoPluginBase 混用而报错。
-    for name in [n for n in sys.modules if n == "plugin" or n.startswith("plugin.")]:
-        del sys.modules[name]
     for name in [n for n in sys.modules if n == "neko_daily_chronicle"
                  or (n.startswith("neko_daily_chronicle.") and ".tests" not in n)]:
         del sys.modules[name]
