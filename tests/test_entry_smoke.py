@@ -23,8 +23,6 @@ import uuid
 from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 TMP_ROOT = ROOT / ".tmp-tests"
 
 
@@ -239,7 +237,6 @@ def _load_plugin_module():
     """优先用真实 SDK；没有就装一个最小替身。"""
 
     try:
-        import plugin.sdk.plugin  # noqa: F401
 
         if str(ROOT.parent) not in sys.path:
             sys.path.insert(0, str(ROOT.parent))
@@ -769,8 +766,8 @@ class PluginSmokeTests(unittest.TestCase):
         self.assertIsNone(parse("今天油菜花开得真好"))
 
     def test_reader_skips_invocation_lines(self):
-        from chronicle.reader import _is_invocation, search_turns  # type: ignore
         from chronicle.models import Turn  # type: ignore
+        from chronicle.reader import _is_invocation, search_turns  # type: ignore
 
         self.assertTrue(_is_invocation("我说过油菜花吗"))
         self.assertTrue(_is_invocation("10月13号第3条"))
@@ -1091,10 +1088,10 @@ class PluginSmokeTests(unittest.TestCase):
         )
 
         # 生成章节（with_diary=False）不写日记；立即生成日记才写第一人称日记
-        built = asyncio.run(self.plugin.entry_build_today(with_diary=False))
+        asyncio.run(self.plugin.entry_build_today(with_diary=False))
         self.assertTrue(self.plugin.store.has_chapter(day))
         self.assertFalse(self.plugin.store.has_diary(day))
-        diaried = asyncio.run(self.plugin.entry_generate_diary(date=day))
+        asyncio.run(self.plugin.entry_generate_diary(date=day))
         # 模型不可用：立即生成日记也不写（日记留空，等模型可用后再生成）
         self.assertFalse(self.plugin.store.has_diary(day))
 

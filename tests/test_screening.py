@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import pathlib
 import shutil
-import sys
 import unittest
 import uuid
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import config as config_mod
+from chronicle import diary, screening, screening_review
+from chronicle import store as store_mod
+from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn
 
-from chronicle import config as config_mod  # noqa: E402
-from chronicle import diary, screening, screening_review, store as store_mod  # noqa: E402
-from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 BASE = 1_760_000_000.0
 DAY = "2025-10-06"

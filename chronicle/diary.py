@@ -18,11 +18,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
-from .chapter import scene_label, strip_for_preview
+from .chapter import scene_label
 from .models import (
     ROLE_ASSISTANT,
-    ROLE_SYSTEM,
-    ROLE_UNKNOWN,
     ROLE_USER,
     Turn,
     format_span,
@@ -541,7 +539,6 @@ def _first_person_narrative(stats: DayStats, config: Any) -> str:
     """
 
     master = getattr(config, "master_name", "主人") or "主人"
-    catgirl = getattr(config, "catgirl_name", "猫娘") or "猫娘"
     limit = int(getattr(config, "diary_word_limit", 400) or 400)
 
     if stats.start_ts and stats.end_ts and stats.start_ts != stats.end_ts:
@@ -829,7 +826,7 @@ def render_llm_diary(
 
     lines: list[str] = [f"# {_day_title(day, config, kind='diary')}", ""]
     lines.append(f"> {mood_emoji} {mood_label} ｜ 关键词：{keyword_text}")
-    lines.append(f"> ")
+    lines.append("> ")
     lines.append(f"> 由 {engine} 依据当天原话生成；原文见 [`../chapters/{day}.md`](../chapters/{day}.md)。")
     lines.append("")
     lines.append(body.strip() or "（模型没有返回正文）")

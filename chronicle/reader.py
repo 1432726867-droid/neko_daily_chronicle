@@ -15,7 +15,7 @@ import re
 from typing import Any, Iterable, Sequence
 
 from . import diary as diary_mod
-from .models import ROLE_UNKNOWN, Turn, format_clock, numbered_turns
+from .models import Turn, format_clock, numbered_turns
 
 #: 单条正文在列表类结果里的最大长度（避免一次塞爆模型上下文）。
 LIST_TEXT_LIMIT = 400

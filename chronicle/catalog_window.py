@@ -335,7 +335,6 @@ class CatalogWindow:
         width = max(340, int(saved.get("width") or width))
         height = max(420, int(saved.get("height") or height))
         screen_w = self._root.winfo_screenwidth() if self._root else 1920
-        screen_h = self._root.winfo_screenheight() if self._root else 1080
         x = int(saved.get("x") if saved.get("x") is not None else screen_w - width - 48)
         y = int(saved.get("y") if saved.get("y") is not None else 80)
         x, y = self._clamp_position(x, y, width, height)

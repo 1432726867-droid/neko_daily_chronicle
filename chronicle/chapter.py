@@ -7,11 +7,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 from .models import (
     ROLE_ASSISTANT,
-    ROLE_SYSTEM,
     ROLE_USER,
     Turn,
     format_span,
@@ -214,7 +213,7 @@ def build_chapter(
 
     lines.append("---")
     lines.append("")
-    lines.append(f"*章节结束 ｜ 下一章见。*")
+    lines.append("*章节结束 ｜ 下一章见。*")
     lines.append("")
     return "\n".join(lines)
 

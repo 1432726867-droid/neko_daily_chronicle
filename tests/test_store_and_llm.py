@@ -7,17 +7,16 @@ import json
 import os
 import pathlib
 import shutil
-import sys
 import unittest
 import uuid
 from unittest import mock
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import config as config_mod
+from chronicle import llm, models
+from chronicle import store as store_mod
+from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn
 
-from chronicle import config as config_mod, llm, models, store as store_mod  # noqa: E402
-from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 # 固定时间戳，但日期键用本地时区算出来，避免测试依赖机器时区。
 TS1 = 1_760_000_000.0

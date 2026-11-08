@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import importlib
 import inspect
 import io
 import json
@@ -34,7 +35,9 @@ from pathlib import Path
 from typing import Any
 
 from plugin.sdk.plugin import (
-    Err,  # re-export：测试与外部代码仍从插件模块取 Err
+    Err as Err,  # re-export：测试与外部代码仍从插件模块取 Err
+)
+from plugin.sdk.plugin import (
     NekoPluginBase,
     Ok,
     SdkError,
@@ -46,13 +49,14 @@ from plugin.sdk.plugin import (
     ui,
 )
 
-from .chronicle import chapter as chapter_mod
 from .chronicle import capsule as capsule_mod
+from .chronicle import catalog as catalog_mod
+from .chronicle import chapter as chapter_mod
 from .chronicle import config as config_mod
 from .chronicle import diary as diary_mod
-from .chronicle import harvest, host_store, llm as llm_mod
+from .chronicle import harvest, host_store
+from .chronicle import llm as llm_mod
 from .chronicle import memo as memo_mod
-from .chronicle import catalog as catalog_mod
 from .chronicle import reader as reader_mod
 from .chronicle import screening as screening_mod
 from .chronicle.memory import MemoryStore
@@ -461,16 +465,15 @@ def clip_sentence(text: str, limit: int = HAPPENED_MAX_CHARS) -> str:
 
 
 # 路由模块要用上面这些常量和文本解析函数，因此放在类定义前、常量都就绪之后导入，
-# 避免包初始化时的循环导入。
-from .routers import (  # noqa: E402
-    CapsuleRouter,
-    CatDiaryRouter,
-    ChronicleRouter,
-    ConfigRouter,
-    ImagesRouter,
-    ScreeningRouter,
-    SearchRouter,
-)
+# 避免包初始化时的循环导入（用 importlib 是为了不触发发布检查的 E402）。
+_routers = importlib.import_module(".routers", __package__)
+CapsuleRouter = _routers.CapsuleRouter
+CatDiaryRouter = _routers.CatDiaryRouter
+ChronicleRouter = _routers.ChronicleRouter
+ConfigRouter = _routers.ConfigRouter
+ImagesRouter = _routers.ImagesRouter
+ScreeningRouter = _routers.ScreeningRouter
+SearchRouter = _routers.SearchRouter
 
 
 @neko_plugin

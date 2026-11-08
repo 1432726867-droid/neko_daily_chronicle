@@ -7,15 +7,13 @@
 from __future__ import annotations
 
 import pathlib
-import sys
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import config as config_mod
+from chronicle import reader
+from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn, numbered_turns
 
-from chronicle import config as config_mod, reader  # noqa: E402
-from chronicle.models import ROLE_ASSISTANT, ROLE_USER, Turn, numbered_turns  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 BASE = 1_760_000_000.0
 

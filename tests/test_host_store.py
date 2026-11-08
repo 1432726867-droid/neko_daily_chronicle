@@ -10,17 +10,16 @@ import json
 import pathlib
 import shutil
 import sqlite3
-import sys
 import time
 import unittest
 import uuid
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import config as config_mod
+from chronicle import harvest, host_store
+from chronicle import store as store_mod
+from chronicle.models import ROLE_ASSISTANT, ROLE_UNKNOWN, ROLE_USER, Turn
 
-from chronicle import config as config_mod, harvest, host_store, store as store_mod  # noqa: E402
-from chronicle.models import ROLE_ASSISTANT, ROLE_UNKNOWN, ROLE_USER, Turn  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 TMP_ROOT = ROOT / ".tmp-tests"
 

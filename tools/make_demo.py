@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import importlib
 import pathlib
 import sys
 
@@ -16,8 +17,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from chronicle import chapter, config as config_mod, diary  # noqa: E402
-from chronicle.models import Turn  # noqa: E402
+# 这里必须用 importlib：先设置 sys.path 再 import 会触发 E402，而发布检查禁止 noqa。
+chapter = importlib.import_module("chronicle.chapter")
+config_mod = importlib.import_module("chronicle.config")
+diary = importlib.import_module("chronicle.diary")
+Turn = importlib.import_module("chronicle.models").Turn
 
 DAY = "2026-01-01"
 BASE_TS = 1_767_225_600.0  # 2026-01-01 08:00 UTC

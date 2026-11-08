@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import pathlib
 import shutil
-import sys
 import unittest
 import uuid
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import capsule, models
+from chronicle import config as config_mod
+from chronicle import store as store_mod
 
-from chronicle import capsule, config as config_mod, models, store as store_mod  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 TMP_ROOT = ROOT / ".tmp-tests"
 NOW = 1_760_000_000.0

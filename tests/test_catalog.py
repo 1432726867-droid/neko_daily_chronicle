@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import pathlib
-import sys
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import catalog
+from chronicle import config as config_mod
 
-from chronicle import catalog, config as config_mod  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class CatalogCommandTests(unittest.TestCase):

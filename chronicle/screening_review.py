@@ -102,7 +102,6 @@ def local_review(
     """模型不可用时的本地观后感：只复述少量原文与手记，不编造。"""
 
     master = getattr(config, "master_name", "主人") or "主人"
-    catgirl = getattr(config, "catgirl_name", "猫娘") or "猫娘"
     lines: list[str] = []
     if watched_turns:
         first = watched_turns[0]

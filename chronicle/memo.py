@@ -12,7 +12,6 @@ import json
 import random
 import re
 from pathlib import Path
-from typing import Any
 
 from .store import ChronicleStore
 

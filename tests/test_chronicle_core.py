@@ -6,21 +6,19 @@
 from __future__ import annotations
 
 import pathlib
-import sys
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from chronicle import chapter, config as config_mod, diary, harvest, models  # noqa: E402
-from chronicle.models import (  # noqa: E402
+from chronicle import chapter, diary, harvest, models
+from chronicle import config as config_mod
+from chronicle.models import (
     ROLE_ASSISTANT,
     ROLE_SYSTEM,
     ROLE_UNKNOWN,
     ROLE_USER,
     Turn,
 )
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 DAY = "2026-10-06"
 

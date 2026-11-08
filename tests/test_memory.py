@@ -4,16 +4,14 @@ from __future__ import annotations
 
 import pathlib
 import shutil
-import sys
 import unittest
 import uuid
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from chronicle import config as config_mod
+from chronicle import store as store_mod
+from chronicle.memory import MemoryStore
 
-from chronicle import config as config_mod, store as store_mod  # noqa: E402
-from chronicle.memory import MemoryStore  # noqa: E402
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 TMP_ROOT = ROOT / ".tmp-tests"
 
