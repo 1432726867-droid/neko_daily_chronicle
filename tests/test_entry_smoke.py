@@ -103,7 +103,11 @@ def _install_fake_sdk() -> None:
             self.routers: list[PluginRouter] = []
 
         def include_router(self, router):
-            router.main_plugin = self
+            binder = getattr(router, "_bind", None)
+            if callable(binder):
+                binder(self)
+            else:
+                router.main_plugin = self
             self.routers.append(router)
             return router
 
@@ -243,11 +247,17 @@ def _load_plugin_module():
     except Exception:  # noqa: BLE001 - 回落到替身
         pass
 
+    # 真 SDK 已被导入过时，必须连同插件子模块一起清干净，否则会拿到真实的
+    # PluginRouter/ConfigRouter，跟下面的假 NekoPluginBase 混用而报错。
+    for name in [n for n in sys.modules if n == "plugin" or n.startswith("plugin.")]:
+        del sys.modules[name]
+    for name in [n for n in sys.modules if n == "neko_daily_chronicle"
+                 or (n.startswith("neko_daily_chronicle.") and ".tests" not in n)]:
+        del sys.modules[name]
     _install_fake_sdk()
     parent = str(ROOT.parent)
     if parent not in sys.path:
         sys.path.insert(0, parent)
-    sys.modules.pop("neko_daily_chronicle", None)
     return importlib.import_module("neko_daily_chronicle")
 
 
